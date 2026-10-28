@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dočasná ikona: jantárový štvorec s bublinou odkazu. Nahradiť finálnou adaptívnou ikonou. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#F5B301"
+        android:pathData="M24,14h60a10,10 0,0 1,10 10v60a10,10 0,0 1,-10 10h-60a10,10 0,0 1,-10 -10v-60a10,10 0,0 1,10 -10z" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#121417"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M32,36h44v28H46l-14,11z" />
+</vector>

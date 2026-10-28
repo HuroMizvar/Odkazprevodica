@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Odkaz pre vodiča</string>
+
+    <!-- Domov -->
+    <string name="home_send_title">Poslať odkaz</string>
+    <string name="home_send_subtitle">Odfoť ŠPZ alebo ju zadaj ručne</string>
+    <string name="home_my_cars">Moje autá</string>
+    <string name="home_cars_count">%1$d / %2$d</string>
+    <string name="home_add_car">Pridať auto</string>
+    <string name="home_no_new">Žiadne nové odkazy</string>
+    <string name="home_last_message">Posledný odkaz: %1$s</string>
+    <string name="profile">Profil</string>
+
+    <!-- Navigácia -->
+    <string name="nav_home">Domov</string>
+    <string name="nav_sent">Odoslané</string>
+    <string name="nav_settings">Nastavenia</string>
+    <string name="back">Späť</string>
+
+    <!-- Nový odkaz -->
+    <string name="new_title">Nový odkaz</string>
+    <string name="new_plate_label">ŠPZ vozidla</string>
+    <string name="new_plate_hint">Napr. BA842MX</string>
+    <string name="new_scan">Odfotiť ŠPZ</string>
+    <string name="new_what_happens">Čo sa deje?</string>
+    <string name="new_send">Odoslať odkaz</string>
+    <string name="new_privacy_note">Neuvidíš, či majiteľ aplikáciu používa.</string>
+    <string name="new_sent_confirmation">Odkaz odoslaný</string>
+    <string name="new_emergency_note">V ohrození života volajte 112.</string>
+
+    <!-- Šablóny odkazov: krátky text na dlaždicu / plný text pre príjemcu -->
+    <string name="tpl_lights_short">Svietia svetlá</string>
+    <string name="tpl_lights_full">Svietia vám svetlá</string>
+    <string name="tpl_window_short">Otvorené okno</string>
+    <string name="tpl_window_full">Máte otvorené okno</string>
+    <string name="tpl_door_short">Dvere / kufor</string>
+    <string name="tpl_door_full">Máte zle zatvorené dvere alebo kufor</string>
+    <string name="tpl_tire_short">Pneumatika</string>
+    <string name="tpl_tire_full">Máte podfúknutú alebo prázdnu pneumatiku</string>
+    <string name="tpl_fault_short">Závada na aute</string>
+    <string name="tpl_fault_full">Na vašom aute je závada</string>
+    <string name="tpl_fell_short">Niečo vypadlo</string>
+    <string name="tpl_fell_full">Niečo vám vypadlo z auta alebo zostalo na streche</string>
+    <string name="tpl_child_short">Zviera / dieťa v aute</string>
+    <string name="tpl_child_full">Vo vozidle zostalo zviera alebo dieťa</string>
+    <string name="tpl_blocking_short">Blokujete výjazd</string>
+    <string name="tpl_blocking_full">Blokujete výjazd alebo vjazd</string>
+    <string name="tpl_tow_short">Hrozí odťah</string>
+    <string name="tpl_tow_full">Hrozí vám odťah alebo pokuta</string>
+    <string name="tpl_damage_short">Poškodené auto</string>
+    <string name="tpl_damage_full">Vaše auto bolo poškodené</string>
+    <string name="tpl_alarm_short">Spustený alarm</string>
+    <string name="tpl_alarm_full">Spustil sa vám alarm</string>
+
+    <!-- Odpovede -->
+    <string name="reply_checking">Ďakujem, skontrolujem to</string>
+    <string name="reply_resolved">Ďakujem, už je to vyriešené</string>
+    <string name="reply_not_mine">Toto nie je moje auto</string>
+
+    <!-- Detail odkazu -->
+    <string name="detail_title">Prijatý odkaz</string>
+    <string name="detail_meta">%1$s · od %2$s</string>
+    <string name="detail_reply_header">Odpovedať (voliteľné)</string>
+    <string name="detail_mark_read">Označiť ako prečítané</string>
+    <string name="detail_marked_read">Označené ako prečítané</string>
+    <string name="detail_block">Blokovať odosielateľa</string>
+    <string name="detail_report">Nahlásiť</string>
+    <string name="detail_retention">Odkaz sa automaticky zmaže o 30 dní.</string>
+    <string name="detail_reply_sent">Odpoveď odoslaná</string>
+    <string name="detail_blocked">Odosielateľ je zablokovaný</string>
+    <string name="detail_reported">Odkaz bol nahlásený</string>
+
+    <!-- Bezpečnostná výstraha -->
+    <string name="safety_title">Myslite na svoju bezpečnosť</string>
+    <string name="safety_body">Odosielateľ sa dozvie, že idete k autu. Odkaz môže byť aj zámienka, ako vás k vozidlu vylákať.</string>
+    <string name="safety_tip_busy">Choďte k autu, len ak je okolie rušné a osvetlené.</string>
+    <string name="safety_tip_alone">Ak sa vám niečo nezdá, nechoďte sami.</string>
+    <string name="safety_tip_police">V ohrození volajte políciu 158 alebo 112.</string>
+    <string name="safety_confirm">Rozumiem, odoslať</string>
+    <string name="cancel">Zrušiť</string>
+</resources>
