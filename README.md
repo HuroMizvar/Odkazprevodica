@@ -6,38 +6,44 @@ Android aplikácia na anonymné posielanie preddefinovaných odkazov vodičom po
 - Balík: `sk.odkazprevodica.app`
 - Technológia: Kotlin, Jetpack Compose, Material 3
 - Dizajn: prevedenie **A1 · Signál** (tmavé, jantárová)
-- Stav: **v0.1 – kostra UI s testovacími dátami**, bez backendu
+- Stav: **v0.2 – funkcie v telefóne, bez servera**
 
 ## Spustenie
 
-1. Otvor priečinok v **Android Studio** (File → Open).
-2. Počkaj na Gradle sync. Ak Studio ponúkne aktualizáciu AGP alebo Kotlinu, prijmi ju.
-3. Spusti na emulátore alebo telefóne (Run ▶).
+APK zostaví GitHub Actions pri každom commite do `main` (záložka Actions / Releases).
+Lokálne: otvor priečinok v Android Studio a spusti Run ▶.
 
 ## Čo je hotové
 
-| Obrazovka | Obsah |
+| Funkcia | Stav |
 |---|---|
-| Domov | Tlačidlo „Poslať odkaz“, zoznam mojich áut (max. 20) s počtom nových odkazov |
-| Nový odkaz | Zadanie ŠPZ (normalizácia, kontrola formátu), 11 šablón, odoslanie s rovnakým potvrdením bez ohľadu na existenciu konta |
-| Prijatý odkaz | Detail, 3 odpovede, bezpečnostná výstraha pred „Ďakujem, skontrolujem to“, označiť ako prečítané, blokovať, nahlásiť |
+| Domov | Autá z úložiska, počet neprečítaných, posledný odkaz |
+| Pridať auto | ŠPZ + názov, potvrdenie používania, max. 20, kontrola duplicity |
+| Schránka auta | Zoznam odkazov, premenovať, odobrať (zmaže aj odkazy) |
+| Nový odkaz | Ručne alebo **skenom ŠPZ** (CameraX + ML Kit, v telefóne), 11 šablón, limity 3/ŠPZ/deň a 20/deň |
+| Prijatý odkaz | Odpoveď (s bezpečnostnou výstrahou), prečítané, blokovať, nahlásiť |
+| Odoslané | História bez stavu doručenia |
+| Nastavenia | Pseudonym, blokovaní, zásady súkromia, vymazanie údajov |
+| Úložisko | V telefóne (SharedPreferences), automatické mazanie po 30 dňoch |
 
-Šablóny odkazov a odpovedí: `app/src/main/java/sk/odkazprevodica/app/data/Templates.kt`
-Texty (slovenčina): `app/src/main/res/values/strings.xml`
+**Test bez servera:** odkaz poslaný na vlastnú ŠPZ príde do vlastnej schránky.
+Pri prvom spustení sa vytvoria 3 ukážkové autá s odkazmi.
+
+Šablóny: `app/src/main/java/sk/odkazprevodica/app/data/Templates.kt` · Texty: `app/src/main/res/values/strings.xml`
 
 ## Ďalšie kroky
 
 | # | Krok |
 |---|---|
-| 1 | Firebase projekt: Auth (Google), Firestore, Cloud Messaging; `google-services.json` do `app/` (necommitovať) |
-| 2 | Prihlásenie cez Google + pseudonym používateľa |
-| 3 | Pridanie auta, pozvánka pre ďalšieho sledovateľa, spor o ŠPZ |
-| 4 | Cloud Functions: doručenie odkazu, limity (3/ŠPZ/deň na odosielateľa), mazanie po 30 dňoch |
-| 5 | Push notifikácie |
-| 6 | Skenovanie ŠPZ: CameraX + ML Kit Text Recognition |
-| 7 | Obrazovky Odoslané a Nastavenia (blokovaní, zmazanie konta, zásady ochrany súkromia) |
-| 8 | Písmo Archivo, finálna adaptívna ikona |
-| 9 | Play Console: zásady ochrany súkromia, formulár bezpečnosti údajov, uzavreté testovanie |
+| 1 | Firebase: Auth (Google), Firestore, Cloud Messaging |
+| 2 | Prihlásenie cez Google, pseudonym na serveri |
+| 3 | Cloud Functions: doručenie, limity na serveri, mazanie po 30 dňoch, pozvánky a spory o ŠPZ |
+| 4 | Push notifikácie |
+| 5 | Písmo Archivo, finálna ikona |
+| 6 | Play Console: zásady ochrany súkromia, formulár bezpečnosti údajov, uzavreté testovanie |
+
+`app/debug.keystore` je verejný testovací podpis (nie pre Google Play), aby sa nové
+testovacie APK dali inštalovať cez staršie.
 
 ## Pravidlá produktu
 
