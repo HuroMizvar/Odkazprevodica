@@ -52,5 +52,9 @@ enum class ReplyTemplate(
 ) {
     CHECKING("checking", R.string.reply_checking, needsSafetyWarning = true),
     RESOLVED("resolved", R.string.reply_resolved),
-    NOT_MINE("not_mine", R.string.reply_not_mine),
+    NOT_MINE("not_mine", R.string.reply_not_mine);
+
+    companion object {
+        fun fromId(id: String?): ReplyTemplate? = entries.firstOrNull { it.id == id }
+    }
 }

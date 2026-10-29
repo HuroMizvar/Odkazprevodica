@@ -12,13 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -26,25 +21,30 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import sk.odkazprevodica.app.R
 import sk.odkazprevodica.app.data.MessageTemplate
+import sk.odkazprevodica.app.data.SendResult
+import sk.odkazprevodica.app.data.displayPlate
 import sk.odkazprevodica.app.data.isValidSkPlate
 import sk.odkazprevodica.app.data.normalizePlate
 import sk.odkazprevodica.app.ui.components.AppIcons
 import sk.odkazprevodica.app.ui.components.BackHeader
+import sk.odkazprevodica.app.ui.components.PlateTextField
+import sk.odkazprevodica.app.ui.components.PrimaryButton
 import sk.odkazprevodica.app.ui.components.SectionLabel
 import sk.odkazprevodica.app.ui.components.strokeIcon
 import sk.odkazprevodica.app.ui.theme.AppColors
@@ -52,13 +52,31 @@ import sk.odkazprevodica.app.ui.theme.AppColors
 @Composable
 fun NewMessageScreen(
     snackbarHostState: SnackbarHostState,
+    /** ŠPZ vrátená zo skenera (alebo null). */
+    scannedPlate: String?,
+    onScannedConsumed: () -> Unit,
     onBack: () -> Unit,
-    onSend: (plate: String, template: MessageTemplate) -> Unit,
+    onScan: () -> Unit,
+    /** Vráti výsledok; pri SENT obrazovka zavrie sama seba volajúci. */
+    onSend: (plate: String, template: MessageTemplate) -> SendResult,
 ) {
     var plateInput by rememberSaveable { mutableStateOf("") }
-    var selected by rememberSaveable { mutableStateOf<MessageTemplate?>(null) }
+    var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
+    val selected = selectedId?.let { MessageTemplate.fromId(it) }
     val plate = normalizePlate(plateInput)
-    val canSend = isValidSkPlate(plate) && selected != null
+    val plateOk = isValidSkPlate(plate)
+    val canSend = plateOk && selected != null
+    val scope = rememberCoroutineScope()
+
+    val limitPlate = stringResource(R.string.new_limit_plate)
+    val limitDay = stringResource(R.string.new_limit_day)
+
+    LaunchedEffect(scannedPlate) {
+        if (scannedPlate != null) {
+            plateInput = displayPlate(scannedPlate)
+            onScannedConsumed()
+        }
+    }
 
     Scaffold(
         containerColor = AppColors.Background,
@@ -66,20 +84,18 @@ fun NewMessageScreen(
         topBar = { BackHeader(stringResource(R.string.new_title), onBack = onBack) },
         bottomBar = {
             Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 24.dp)) {
-                Button(
-                    onClick = { selected?.let { onSend(plate, it) } },
+                PrimaryButton(
+                    text = stringResource(R.string.new_send),
                     enabled = canSend,
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = AppColors.Amber,
-                        contentColor = AppColors.OnAmber,
-                        disabledContainerColor = AppColors.Surface,
-                        disabledContentColor = AppColors.TextMuted,
-                    ),
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                ) {
-                    Text(stringResource(R.string.new_send), fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
-                }
+                    onClick = {
+                        val t = selected ?: return@PrimaryButton
+                        when (onSend(plate, t)) {
+                            SendResult.SENT -> Unit
+                            SendResult.LIMIT_PLATE -> scope.launch { snackbarHostState.showSnackbar(limitPlate) }
+                            SendResult.LIMIT_DAY -> scope.launch { snackbarHostState.showSnackbar(limitDay) }
+                        }
+                    },
+                )
                 Text(
                     stringResource(R.string.new_privacy_note),
                     color = AppColors.TextMuted,
@@ -98,29 +114,13 @@ fun NewMessageScreen(
                 .padding(horizontal = 20.dp),
         ) {
             SectionLabel(stringResource(R.string.new_plate_label), Modifier.padding(bottom = 8.dp))
-            OutlinedTextField(
-                value = plateInput,
-                onValueChange = { if (normalizePlate(it).length <= 7) plateInput = it.uppercase() },
-                singleLine = true,
-                placeholder = { Text(stringResource(R.string.new_plate_hint), color = AppColors.TextMuted) },
-                textStyle = TextStyle(fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 3.sp, textAlign = TextAlign.Center),
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, autoCorrectEnabled = false),
-                shape = RoundedCornerShape(10.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = AppColors.PlateWhite,
-                    unfocusedContainerColor = AppColors.PlateWhite,
-                    focusedTextColor = AppColors.OnAmber,
-                    unfocusedTextColor = AppColors.OnAmber,
-                    focusedBorderColor = AppColors.Amber,
-                    unfocusedBorderColor = AppColors.PlateWhite,
-                    cursorColor = AppColors.OnAmber,
-                ),
-                modifier = Modifier.fillMaxWidth(),
-            )
+            PlateTextField(plateInput, { plateInput = it }, stringResource(R.string.new_plate_hint))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                if (plate.length == 7 && !plateOk) {
+                    Text(stringResource(R.string.new_invalid_plate), color = AppColors.Urgent, fontSize = 13.sp)
+                }
                 Spacer(Modifier.weight(1f))
-                // TODO: CameraX + ML Kit Text Recognition – rozpoznanie ŠPZ z fotky.
-                TextButton(onClick = { }) {
+                TextButton(onClick = onScan) {
                     Icon(AppIcons.Camera, contentDescription = null, tint = AppColors.Amber, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.size(6.dp))
                     Text(stringResource(R.string.new_scan), color = AppColors.Amber, fontWeight = FontWeight.Bold)
@@ -137,7 +137,7 @@ fun NewMessageScreen(
             MessageTemplate.entries.chunked(2).forEach { row ->
                 Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     row.forEach { t ->
-                        TemplateTile(t, isSelected = t == selected, onClick = { selected = t }, modifier = Modifier.weight(1f))
+                        TemplateTile(t, isSelected = t == selected, onClick = { selectedId = t.id }, modifier = Modifier.weight(1f))
                     }
                     if (row.size == 1) Spacer(Modifier.weight(1f))
                 }
@@ -148,7 +148,7 @@ fun NewMessageScreen(
                     color = AppColors.Urgent,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 4.dp),
+                    modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
                 )
             }
         }

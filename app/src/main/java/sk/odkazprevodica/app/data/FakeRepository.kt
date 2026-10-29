@@ -1,42 +1,23 @@
 package sk.odkazprevodica.app.data
 
 /**
- * Testovacie dáta pre vývoj UI. V ďalšom kroku sa nahradí Firebase
- * (Auth + Firestore + Cloud Functions).
+ * Ukážkové dáta pri prvom spustení, aby sa dala aplikácia vyskúšať bez servera.
+ * Používateľ ich môže zmazať (odobrať autá alebo Nastavenia → Vymazať všetky údaje).
  */
-object FakeRepository {
+object DemoData {
 
-    val myPseudonym = "Vodič #4821"
-
-    val cars = listOf(
-        Car("BA842MX", "Škoda Octavia", unreadCount = 2, lastMessageLabel = "dnes 14:21"),
-        Car("TT519KD", "Dodávka", unreadCount = 0, lastMessageLabel = null),
-        Car("PK207AB", "Auto – manželka", unreadCount = 1, lastMessageLabel = "včera"),
+    fun cars() = listOf(
+        Car("BA842MX", "Škoda Octavia"),
+        Car("TT519KD", "Dodávka"),
+        Car("PK207AB", "Auto – manželka"),
     )
 
-    val messages = listOf(
-        ReceivedMessage("m1", "BA842MX", "Škoda Octavia", MessageTemplate.LIGHTS, "Vodič #7193", "Dnes 14:21"),
-        ReceivedMessage("m2", "BA842MX", "Škoda Octavia", MessageTemplate.BLOCKING, "Vodič #2280", "Dnes 08:05"),
-        ReceivedMessage("m3", "PK207AB", "Auto – manželka", MessageTemplate.WINDOW, "Vodič #5512", "Včera 17:40"),
-    )
-
-    fun message(id: String): ReceivedMessage? = messages.firstOrNull { it.id == id }
-
-    fun latestMessageFor(plate: String): ReceivedMessage? = messages.firstOrNull { it.plate == plate }
-
-    /**
-     * Odoslanie odkazu. Výsledok je pre odosielateľa vždy rovnaký –
-     * nedozvie sa, či ŠPZ má konto ani či bol odkaz doručený.
-     */
-    fun sendMessage(plate: String, template: MessageTemplate) {
-        // TODO: volanie Cloud Function `sendMessage` (limity, doručenie, zahodenie bez stopy).
+    fun inbox(now: Long = System.currentTimeMillis()): List<ReceivedMessage> {
+        val h = 60 * 60 * 1000L
+        return listOf(
+            ReceivedMessage("demo1", "BA842MX", MessageTemplate.LIGHTS, "Vodič #7193", now - 5 * 60 * 1000L),
+            ReceivedMessage("demo2", "BA842MX", MessageTemplate.BLOCKING, "Vodič #2280", now - 6 * h),
+            ReceivedMessage("demo3", "PK207AB", MessageTemplate.WINDOW, "Vodič #5512", now - 26 * h),
+        )
     }
-
-    fun sendReply(messageId: String, reply: ReplyTemplate) {
-        // TODO: Firestore zápis odpovede.
-    }
-
-    fun markAsRead(messageId: String) { /* TODO */ }
-    fun blockSender(messageId: String) { /* TODO */ }
-    fun report(messageId: String) { /* TODO */ }
 }

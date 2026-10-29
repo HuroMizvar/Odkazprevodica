@@ -36,7 +36,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import sk.odkazprevodica.app.R
+import sk.odkazprevodica.app.data.AppData
 import sk.odkazprevodica.app.data.Car
+import sk.odkazprevodica.app.data.formatTime
 import sk.odkazprevodica.app.data.MAX_CARS
 import sk.odkazprevodica.app.ui.components.AppIcons
 import sk.odkazprevodica.app.ui.components.BottomBar
@@ -47,14 +49,14 @@ import sk.odkazprevodica.app.ui.theme.AppColors
 
 @Composable
 fun HomeScreen(
-    pseudonym: String,
-    cars: List<Car>,
+    data: AppData,
     snackbarHostState: SnackbarHostState,
     onSendClick: () -> Unit,
     onCarClick: (Car) -> Unit,
     onAddCarClick: () -> Unit,
     onTabSelect: (Tab) -> Unit,
 ) {
+    val cars = data.cars
     Scaffold(
         containerColor = AppColors.Background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -86,13 +88,14 @@ fun HomeScreen(
                     fontWeight = FontWeight.ExtraBold,
                 )
                 Surface(
+                    onClick = { onTabSelect(Tab.Settings) },
                     shape = CircleShape,
                     color = AppColors.Surface,
                     border = BorderStroke(1.dp, AppColors.Outline),
                     modifier = Modifier.size(44.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Text("#" + pseudonym.takeLast(4).take(2), color = AppColors.Text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text("#" + data.pseudonym.takeLast(4), color = AppColors.Text, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -122,7 +125,12 @@ fun HomeScreen(
                 Text(stringResource(R.string.home_cars_count, cars.size, MAX_CARS), color = AppColors.TextMuted, fontSize = 13.sp)
             }
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                cars.forEach { car -> CarRow(car, onClick = { onCarClick(car) }) }
+                cars.forEach { car ->
+                    val last = data.inboxFor(car.plate).firstOrNull()?.let {
+                        formatTime(it.timestamp, stringResource(R.string.today), stringResource(R.string.yesterday))
+                    }
+                    CarRow(car, data.unreadFor(car.plate), last, onClick = { onCarClick(car) })
+                }
                 OutlinedButton(
                     onClick = onAddCarClick,
                     enabled = cars.size < MAX_CARS,
@@ -142,7 +150,7 @@ fun HomeScreen(
 }
 
 @Composable
-private fun CarRow(car: Car, onClick: () -> Unit) {
+private fun CarRow(car: Car, unreadCount: Int, lastMessageLabel: String?, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(18.dp),
@@ -159,18 +167,18 @@ private fun CarRow(car: Car, onClick: () -> Unit) {
             Column(Modifier.weight(1f)) {
                 Text(car.alias, color = AppColors.Text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                 Text(
-                    car.lastMessageLabel?.let { stringResource(R.string.home_last_message, it) }
+                    lastMessageLabel?.let { stringResource(R.string.home_last_message, it) }
                         ?: stringResource(R.string.home_no_new),
                     color = AppColors.TextMuted,
                     fontSize = 13.sp,
                 )
             }
-            if (car.unreadCount > 0) {
+            if (unreadCount > 0) {
                 Box(
                     Modifier.defaultMinSize(26.dp, 26.dp).clip(CircleShape).background(AppColors.Amber).padding(horizontal = 6.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(car.unreadCount.toString(), color = AppColors.OnAmber, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
+                    Text(unreadCount.toString(), color = AppColors.OnAmber, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
                 }
             }
         }

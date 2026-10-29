@@ -79,4 +79,69 @@
     <string name="safety_tip_police">V ohrození volajte políciu 158 alebo 112.</string>
     <string name="safety_confirm">Rozumiem, odoslať</string>
     <string name="cancel">Zrušiť</string>
+    <string name="save">Uložiť</string>
+    <string name="today">dnes</string>
+    <string name="yesterday">včera</string>
+
+    <!-- Odoslanie – limity -->
+    <string name="new_limit_plate">Tejto ŠPZ si dnes už poslal 3 odkazy. Skús to zajtra.</string>
+    <string name="new_limit_day">Dnes si už poslal maximálny počet odkazov (20).</string>
+    <string name="new_invalid_plate">Zadaj platnú ŠPZ v tvare AA123AA</string>
+
+    <!-- Skener -->
+    <string name="scan_title">Odfotiť ŠPZ</string>
+    <string name="scan_hint">Namier kameru na ŠPZ. Rozpoznávanie beží iba v telefóne, fotka sa nikam neposiela.</string>
+    <string name="scan_searching">Hľadám ŠPZ…</string>
+    <string name="scan_use">Použiť túto ŠPZ</string>
+    <string name="scan_no_permission">Na odfotenie ŠPZ potrebuje aplikácia prístup ku kamere. ŠPZ môžeš zadať aj ručne.</string>
+    <string name="scan_allow">Povoliť kameru</string>
+
+    <!-- Pridať auto -->
+    <string name="add_title">Pridať auto</string>
+    <string name="add_plate">ŠPZ tvojho auta</string>
+    <string name="add_alias">Názov (voliteľné)</string>
+    <string name="add_alias_hint">Napr. Škoda Octavia</string>
+    <string name="add_consent">Potvrdzujem, že toto vozidlo používam.</string>
+    <string name="add_info">Odkazy pre túto ŠPZ budeš dostávať ty. Ak ju už sleduje niekto iný, budeš potrebovať jeho pozvánku.</string>
+    <string name="add_submit">Pridať auto</string>
+    <string name="add_done">Auto pridané</string>
+    <string name="add_err_duplicate">Toto auto už máš pridané.</string>
+    <string name="add_err_limit">Môžeš mať najviac 20 áut.</string>
+
+    <!-- Schránka auta -->
+    <string name="car_inbox_empty">Zatiaľ žiadne odkazy.</string>
+    <string name="car_rename">Premenovať</string>
+    <string name="car_remove">Odobrať auto</string>
+    <string name="car_remove_title">Odobrať auto?</string>
+    <string name="car_remove_text">Prestaneš dostávať odkazy pre %1$s a zmažú sa aj prijaté odkazy.</string>
+    <string name="car_remove_confirm">Odobrať</string>
+    <string name="car_removed">Auto odobraté</string>
+    <string name="car_test_hint">Tip na test: pošli odkaz na vlastnú ŠPZ – kým nie je server, príde sem.</string>
+
+    <!-- Detail – stavy -->
+    <string name="detail_your_reply">Tvoja odpoveď: %1$s</string>
+
+    <!-- Odoslané -->
+    <string name="sent_title">Odoslané</string>
+    <string name="sent_empty">Zatiaľ si neposlal žiadny odkaz.</string>
+    <string name="sent_note">Nevidíš, či bol odkaz doručený – chráni to súkromie majiteľa. Odpovede uvidíš, ak ti majiteľ odpíše.</string>
+
+    <!-- Nastavenia -->
+    <string name="settings_title">Nastavenia</string>
+    <string name="settings_identity">Tvoja identita</string>
+    <string name="settings_identity_note">Ostatní ťa vidia iba pod týmto pseudonymom. Tvoj e-mail ani meno nikto nevidí.</string>
+    <string name="settings_blocked">Zablokovaní odosielatelia</string>
+    <string name="settings_blocked_empty">Nikoho si nezablokoval.</string>
+    <string name="settings_unblock">Odblokovať</string>
+    <string name="settings_privacy">Ochrana súkromia</string>
+    <string name="settings_privacy_1">Iba preddefinované odkazy – žiadny voľný text.</string>
+    <string name="settings_privacy_2">Odosielateľ nevidí, či ŠPZ niekto používa, ani či bol odkaz doručený.</string>
+    <string name="settings_privacy_3">Odkazy sa automaticky mažú po 30 dňoch.</string>
+    <string name="settings_privacy_4">Neukladáme polohu, iba dátum a čas odkazu.</string>
+    <string name="settings_wipe">Vymazať všetky údaje</string>
+    <string name="settings_wipe_title">Vymazať všetky údaje?</string>
+    <string name="settings_wipe_text">Zmažú sa autá, odkazy aj blokovaní a dostaneš nový pseudonym. Nedá sa to vrátiť.</string>
+    <string name="settings_wipe_confirm">Vymazať</string>
+    <string name="settings_wiped">Údaje vymazané</string>
+    <string name="settings_version">Verzia %1$s · testovacia, bez servera</string>
 </resources>

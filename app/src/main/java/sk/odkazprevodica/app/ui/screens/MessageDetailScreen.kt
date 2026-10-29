@@ -46,6 +46,7 @@ import sk.odkazprevodica.app.R
 import sk.odkazprevodica.app.data.ReceivedMessage
 import sk.odkazprevodica.app.data.ReplyTemplate
 import sk.odkazprevodica.app.data.displayPlate
+import sk.odkazprevodica.app.data.formatTime
 import sk.odkazprevodica.app.ui.components.AppIcons
 import sk.odkazprevodica.app.ui.components.BackHeader
 import sk.odkazprevodica.app.ui.components.SectionLabel
@@ -56,6 +57,7 @@ import sk.odkazprevodica.app.ui.theme.AppColors
 @Composable
 fun MessageDetailScreen(
     message: ReceivedMessage,
+    carAlias: String,
     snackbarHostState: SnackbarHostState,
     onBack: () -> Unit,
     onReply: (ReplyTemplate) -> Unit,
@@ -65,7 +67,7 @@ fun MessageDetailScreen(
 ) {
     val scope = rememberCoroutineScope()
     var pendingReply by remember { mutableStateOf<ReplyTemplate?>(null) }
-    var replied by remember { mutableStateOf(false) }
+    val replied = message.reply != null
 
     val replySentText = stringResource(R.string.detail_reply_sent)
     val markedText = stringResource(R.string.detail_marked_read)
@@ -74,7 +76,6 @@ fun MessageDetailScreen(
 
     fun sendReply(reply: ReplyTemplate) {
         onReply(reply)
-        replied = true
         scope.launch { snackbarHostState.showSnackbar(replySentText) }
     }
 
@@ -84,7 +85,7 @@ fun MessageDetailScreen(
         topBar = {
             BackHeader(
                 title = stringResource(R.string.detail_title),
-                subtitle = "${displayPlate(message.plate)} · ${message.carAlias}",
+                subtitle = "${displayPlate(message.plate)} · $carAlias",
                 onBack = onBack,
             )
         },
@@ -119,10 +120,28 @@ fun MessageDetailScreen(
                     )
                 }
                 Text(stringResource(message.template.fullText), color = AppColors.Text, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 32.sp)
-                Text(stringResource(R.string.detail_meta, message.timeLabel, message.senderPseudonym), color = AppColors.TextMuted, fontSize = 14.sp)
+                Text(
+                    stringResource(
+                        R.string.detail_meta,
+                        formatTime(message.timestamp, stringResource(R.string.today), stringResource(R.string.yesterday)),
+                        message.senderPseudonym,
+                    ),
+                    color = AppColors.TextMuted,
+                    fontSize = 14.sp,
+                )
             }
 
             // Odpovede
+            val sentReply = message.reply
+            if (sentReply != null) {
+                Text(
+                    stringResource(R.string.detail_your_reply, stringResource(sentReply.label)),
+                    color = AppColors.Amber,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 22.dp),
+                )
+            }
             if (!replied) {
                 SectionLabel(stringResource(R.string.detail_reply_header), Modifier.padding(top = 26.dp, bottom = 10.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -145,6 +164,7 @@ fun MessageDetailScreen(
             Spacer(Modifier.height(28.dp))
             OutlinedButton(
                 onClick = { onMarkRead(); scope.launch { snackbarHostState.showSnackbar(markedText) } },
+                enabled = !message.readConfirmed,
                 shape = RoundedCornerShape(14.dp),
                 border = BorderStroke(1.5.dp, AppColors.Amber),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = AppColors.Amber),
@@ -152,15 +172,22 @@ fun MessageDetailScreen(
             ) {
                 Icon(AppIcons.Check, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.size(8.dp))
-                Text(stringResource(R.string.detail_mark_read), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    stringResource(if (message.readConfirmed) R.string.detail_marked_read else R.string.detail_mark_read),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                )
             }
             Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.Center) {
                 TextButton(onClick = { onBlock(); scope.launch { snackbarHostState.showSnackbar(blockedText) } }) {
                     Text(stringResource(R.string.detail_block), color = AppColors.TextMuted, fontWeight = FontWeight.SemiBold)
                 }
                 Spacer(Modifier.size(16.dp))
-                TextButton(onClick = { onReport(); scope.launch { snackbarHostState.showSnackbar(reportedText) } }) {
-                    Text(stringResource(R.string.detail_report), color = AppColors.TextMuted, fontWeight = FontWeight.SemiBold)
+                TextButton(
+                    onClick = { onReport(); scope.launch { snackbarHostState.showSnackbar(reportedText) } },
+                    enabled = !message.reported,
+                ) {
+                    Text(stringResource(if (message.reported) R.string.detail_reported else R.string.detail_report), color = AppColors.TextMuted, fontWeight = FontWeight.SemiBold)
                 }
             }
             Text(
