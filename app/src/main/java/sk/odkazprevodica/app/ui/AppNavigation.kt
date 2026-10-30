@@ -1,5 +1,10 @@
 package sk.odkazprevodica.app.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -7,11 +12,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import sk.odkazprevodica.app.R
 import sk.odkazprevodica.app.data.AddCarResult
@@ -56,11 +64,33 @@ private fun NavHostController.goToTab(tab: Tab) {
 }
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(openPlate: String? = null, onPlateOpened: () -> Unit = {}) {
     val nav = rememberNavController()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val data by Repository.state.collectAsState()
+    val context = LocalContext.current
+
+    // Povolenie notifikácií (Android 13+) – raz pri štarte.
+    val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
+
+    // Hlásenia z dátovej vrstvy (napr. bez internetu).
+    LaunchedEffect(Unit) {
+        Repository.events.collect { res -> snackbar.showSnackbar(context.getString(res)) }
+    }
+
+    // Ťuknutie na notifikáciu → schránka auta.
+    LaunchedEffect(openPlate) {
+        if (openPlate != null) {
+            nav.navigate(Routes.car(openPlate)) { launchSingleTop = true }
+            onPlateOpened()
+        }
+    }
 
     val sentText = stringResource(R.string.new_sent_confirmation)
     val addedText = stringResource(R.string.add_done)
@@ -135,9 +165,11 @@ fun AppNavigation() {
         composable(Routes.CAR) { entry ->
             val plate = entry.arguments?.getString("plate").orEmpty()
             val car = data.car(plate)
-            if (car == null) {
-                LaunchedEffect(Unit) { nav.popBackStack() }
-            } else {
+            // Pri štarte zo servera sa autá môžu načítať o chvíľu neskôr.
+            LaunchedEffect(car == null) {
+                if (car == null) { delay(2_000); nav.popBackStack() }
+            }
+            if (car != null) {
                 CarInboxScreen(
                     car = car,
                     messages = data.inboxFor(plate),
@@ -155,9 +187,10 @@ fun AppNavigation() {
         composable(Routes.MESSAGE) { entry ->
             val id = entry.arguments?.getString("id").orEmpty()
             val message = data.visibleInbox.firstOrNull { it.id == id }
-            if (message == null) {
-                LaunchedEffect(Unit) { nav.popBackStack() }
-            } else {
+            LaunchedEffect(message == null) {
+                if (message == null) { delay(2_000); nav.popBackStack() }
+            }
+            if (message != null) {
                 LaunchedEffect(id) { Repository.markSeen(id) }
                 MessageDetailScreen(
                     message = message,

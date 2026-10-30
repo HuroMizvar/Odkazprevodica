@@ -13,5 +13,3 @@
 *.jks
 *.keystore
 !app/debug.keystore
-# Firebase konfigurácia sa necommituje do verejného repozitára
-app/google-services.json

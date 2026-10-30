@@ -2,6 +2,7 @@ package sk.odkazprevodica.app.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -58,6 +59,8 @@ fun HomeScreen(
 ) {
     val cars = data.cars
     Scaffold(
+        // Okraje systému rieši MainActivity (safeDrawing) – tu nič navyše.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = AppColors.Background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = { BottomBar(selected = Tab.Home, onSelect = onTabSelect) },

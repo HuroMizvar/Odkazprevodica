@@ -51,8 +51,9 @@ enum class ReplyTemplate(
     val needsSafetyWarning: Boolean = false,
 ) {
     CHECKING("checking", R.string.reply_checking, needsSafetyWarning = true),
+    SORRY_CHECKING("sorry_checking", R.string.reply_sorry_checking, needsSafetyWarning = true),
     RESOLVED("resolved", R.string.reply_resolved),
-    NOT_MINE("not_mine", R.string.reply_not_mine);
+    SORRY_RESOLVED("sorry_resolved", R.string.reply_sorry_resolved);
 
     companion object {
         fun fromId(id: String?): ReplyTemplate? = entries.firstOrNull { it.id == id }

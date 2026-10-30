@@ -1,0 +1,88 @@
+rules_version = '2';
+
+// Pravidlá prístupu k databáze aplikácie Odkaz pre vodiča.
+// Princípy:
+//  - každý číta a mení iba svoje údaje (users/{uid})
+//  - odosielateľ odkaz iba ZAPÍŠE, nikdy ho neprečíta → nezistí, či ŠPZ niekto používa
+//  - odkazy pre ŠPZ čítajú iba tí, čo ŠPZ sledujú
+//  - iba preddefinované odkazy a odpovede (žiadny voľný text)
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+    function validPlate(p) {
+      return p.matches('^[A-Z]{2}[0-9]{3}[A-Z]{2}$');
+    }
+    function isMember(plate) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/plates/$(plate)/members/$(request.auth.uid));
+    }
+    function validTemplate(t) {
+      return t in ['lights', 'window', 'door', 'tire', 'fault', 'fell_off',
+                   'child_animal', 'blocking', 'tow', 'damage', 'alarm'];
+    }
+    function validReply(r) {
+      return r in ['checking', 'sorry_checking', 'resolved', 'sorry_resolved'];
+    }
+    function myPseudonym() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.pseudonym;
+    }
+
+    match /users/{uid} {
+      allow read, delete: if isSelf(uid);
+      allow create: if isSelf(uid)
+        && request.resource.data.pseudonym is string
+        && request.resource.data.pseudonym.matches('^Vodič #[0-9]{4}$');
+      // pseudonym sa nedá zmeniť
+      allow update: if isSelf(uid)
+        && request.resource.data.pseudonym == resource.data.pseudonym;
+
+      match /cars/{plate} {
+        allow read, delete: if isSelf(uid);
+        allow create, update: if isSelf(uid) && validPlate(plate)
+          && request.resource.data.alias is string
+          && request.resource.data.alias.size() <= 30;
+      }
+
+      match /sent/{id} {
+        allow read, delete: if isSelf(uid);
+        allow create: if isSelf(uid)
+          && request.resource.data.keys().hasOnly(['plate', 'templateId', 'createdAt'])
+          && validPlate(request.resource.data.plate)
+          && validTemplate(request.resource.data.templateId)
+          && request.resource.data.createdAt == request.time;
+        // odpoveď majiteľa sem dopĺňa iba server
+      }
+    }
+
+    match /plates/{plate} {
+      match /members/{member} {
+        allow read, delete: if isSelf(member);
+        allow create: if isSelf(member) && validPlate(plate);
+      }
+
+      match /messages/{id} {
+        allow create: if signedIn() && validPlate(plate)
+          && request.resource.data.keys().hasOnly(['templateId', 'senderUid', 'senderPseudonym', 'createdAt'])
+          && request.resource.data.senderUid == request.auth.uid
+          && request.resource.data.senderPseudonym == myPseudonym()
+          && validTemplate(request.resource.data.templateId)
+          && request.resource.data.createdAt == request.time;
+
+        allow read: if isMember(plate);
+
+        // majiteľ môže iba odpovedať, označiť ako prečítané alebo nahlásiť
+        allow update: if isMember(plate)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reply', 'readConfirmed', 'reported'])
+          && (!('reply' in request.resource.data) || validReply(request.resource.data.reply))
+          && (!('readConfirmed' in request.resource.data) || request.resource.data.readConfirmed is bool)
+          && (!('reported' in request.resource.data) || request.resource.data.reported is bool);
+      }
+    }
+  }
+}

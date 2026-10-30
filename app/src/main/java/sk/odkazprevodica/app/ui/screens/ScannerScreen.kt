@@ -15,6 +15,7 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -80,6 +81,8 @@ fun ScannerScreen(onBack: () -> Unit, onPlate: (String) -> Unit) {
     var stable by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
+        // Okraje systému rieši MainActivity (safeDrawing) – tu nič navyše.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = AppColors.Background,
         topBar = { BackHeader(stringResource(R.string.scan_title), onBack = onBack) },
     ) { padding ->

@@ -1,6 +1,7 @@
 package sk.odkazprevodica.app.ui.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -79,6 +81,8 @@ fun NewMessageScreen(
     }
 
     Scaffold(
+        // Okraje systému rieši MainActivity (safeDrawing) – tu nič navyše.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = AppColors.Background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = { BackHeader(stringResource(R.string.new_title), onBack = onBack) },
@@ -134,12 +138,10 @@ fun NewMessageScreen(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(top = 2.dp, bottom = 10.dp),
             )
-            MessageTemplate.entries.chunked(2).forEach { row ->
-                Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    row.forEach { t ->
-                        TemplateTile(t, isSelected = t == selected, onClick = { selectedId = t.id }, modifier = Modifier.weight(1f))
-                    }
-                    if (row.size == 1) Spacer(Modifier.weight(1f))
+            // Celý text odkazu – presne to, čo uvidí majiteľ.
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                MessageTemplate.entries.forEach { t ->
+                    TemplateTile(t, isSelected = t == selected, onClick = { selectedId = t.id })
                 }
             }
             if (selected == MessageTemplate.CHILD_OR_ANIMAL) {
@@ -167,15 +169,22 @@ private fun TemplateTile(t: MessageTemplate, isSelected: Boolean, onClick: () ->
         shape = RoundedCornerShape(14.dp),
         color = if (isSelected) AppColors.AmberSelected else AppColors.Surface,
         border = BorderStroke(1.5.dp, if (isSelected) AppColors.Amber else AppColors.Outline),
-        modifier = modifier.height(54.dp),
+        modifier = modifier.fillMaxWidth().heightIn(min = 56.dp),
     ) {
         Row(
-            Modifier.padding(horizontal = 12.dp),
+            Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Icon(strokeIcon(t.id, t.iconPath), contentDescription = null, tint = iconTint, modifier = Modifier.size(22.dp))
-            Text(stringResource(t.shortLabel), color = AppColors.Text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, lineHeight = 17.sp)
+            Icon(strokeIcon(t.id, t.iconPath), contentDescription = null, tint = iconTint, modifier = Modifier.size(24.dp))
+            Text(
+                stringResource(t.fullText),
+                color = AppColors.Text,
+                fontSize = 16.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                lineHeight = 20.sp,
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }

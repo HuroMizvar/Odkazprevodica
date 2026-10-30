@@ -2,6 +2,7 @@ package sk.odkazprevodica.app.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -127,7 +128,7 @@ enum class Tab { Home, Sent, Settings }
 
 @Composable
 fun BottomBar(selected: Tab, onSelect: (Tab) -> Unit) {
-    NavigationBar(containerColor = AppColors.Background, tonalElevation = 0.dp) {
+    NavigationBar(containerColor = AppColors.Background, tonalElevation = 0.dp, windowInsets = WindowInsets(0, 0, 0, 0)) {
         val colors = NavigationBarItemDefaults.colors(
             selectedIconColor = AppColors.Amber,
             selectedTextColor = AppColors.Amber,

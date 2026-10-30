@@ -1,5 +1,6 @@
 package sk.odkazprevodica.app.ui.screens
 
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -54,6 +55,8 @@ fun AddCarScreen(
     val errInvalid = stringResource(R.string.new_invalid_plate)
 
     Scaffold(
+        // Okraje systému rieši MainActivity (safeDrawing) – tu nič navyše.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = AppColors.Background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = { BackHeader(stringResource(R.string.add_title), onBack = onBack) },

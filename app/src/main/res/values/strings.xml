@@ -56,7 +56,8 @@
     <!-- Odpovede -->
     <string name="reply_checking">Ďakujem, skontrolujem to</string>
     <string name="reply_resolved">Ďakujem, už je to vyriešené</string>
-    <string name="reply_not_mine">Toto nie je moje auto</string>
+    <string name="reply_sorry_checking">Ospravedlňujem sa, skontrolujem to</string>
+    <string name="reply_sorry_resolved">Ospravedlňujem sa, už je to vyriešené</string>
 
     <!-- Detail odkazu -->
     <string name="detail_title">Prijatý odkaz</string>
@@ -102,7 +103,7 @@
     <string name="add_alias">Názov (voliteľné)</string>
     <string name="add_alias_hint">Napr. Škoda Octavia</string>
     <string name="add_consent">Potvrdzujem, že toto vozidlo používam.</string>
-    <string name="add_info">Odkazy pre túto ŠPZ budeš dostávať ty. Ak ju už sleduje niekto iný, budeš potrebovať jeho pozvánku.</string>
+    <string name="add_info">Odkazy pre túto ŠPZ budeš dostávať ty. Rovnakú ŠPZ môže sledovať aj viac ľudí, napríklad celá rodina.</string>
     <string name="add_submit">Pridať auto</string>
     <string name="add_done">Auto pridané</string>
     <string name="add_err_duplicate">Toto auto už máš pridané.</string>
@@ -143,5 +144,19 @@
     <string name="settings_wipe_text">Zmažú sa autá, odkazy aj blokovaní a dostaneš nový pseudonym. Nedá sa to vrátiť.</string>
     <string name="settings_wipe_confirm">Vymazať</string>
     <string name="settings_wiped">Údaje vymazané</string>
-    <string name="settings_version">Verzia %1$s · testovacia, bez servera</string>
+    <string name="settings_version">Verzia %1$s · %2$s</string>
+    <string name="mode_online">odkazy cez server</string>
+    <string name="mode_local">testovací režim bez servera</string>
+    <string name="settings_identity_note_anon">Konto je anonymné – bez e-mailu a mena. Ostatní ťa vidia iba pod týmto pseudonymom. Po odinštalovaní aplikácie konto zanikne.</string>
+
+    <!-- Odoslané – odpovede -->
+    <string name="sent_reply">Odpoveď: %1$s</string>
+    <string name="sent_read">Majiteľ označil ako prečítané</string>
+
+    <!-- Notifikácie -->
+    <string name="notif_channel">Odkazy pre vodiča</string>
+    <string name="notif_channel_desc">Upozornenia na nové odkazy a odpovede</string>
+    <string name="notif_reply_title">Odpoveď vodiča · %1$s</string>
+    <string name="notif_permission_rationale">Povoľ upozornenia, aby si sa o odkaze dozvedel hneď.</string>
+    <string name="error_offline">Nepodarilo sa odoslať. Skontroluj pripojenie na internet.</string>
 </resources>

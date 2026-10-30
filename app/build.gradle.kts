@@ -4,6 +4,12 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// Firebase sa zapne, iba ak je v priečinku app/ súbor google-services.json.
+// Bez neho aplikácia beží v testovacom režime (všetko v telefóne).
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     namespace = "sk.odkazprevodica.app"
     compileSdk = 35
@@ -13,8 +19,8 @@ android {
         minSdk = 26
         // Pred vydaním over aktuálnu požiadavku Google Play na targetSdk.
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0"
     }
 
     // Pevný testovací podpis: nové verzie z GitHub Actions sa dajú nainštalovať
@@ -70,5 +76,9 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
     implementation(libs.mlkit.text.recognition)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.messaging)
     debugImplementation(libs.androidx.ui.tooling)
 }

@@ -1,6 +1,7 @@
 package sk.odkazprevodica.app.ui.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -57,6 +58,8 @@ fun SettingsScreen(
     val wipedText = stringResource(R.string.settings_wiped)
 
     Scaffold(
+        // Okraje systému rieši MainActivity (safeDrawing) – tu nič navyše.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = AppColors.Background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = { BottomBar(selected = Tab.Settings, onSelect = onTabSelect) },
@@ -76,7 +79,7 @@ fun SettingsScreen(
             SectionLabel(stringResource(R.string.settings_identity), Modifier.padding(top = 16.dp, bottom = 8.dp))
             Card {
                 Text(data.pseudonym, color = AppColors.Amber, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
-                Text(stringResource(R.string.settings_identity_note), color = AppColors.TextMuted, fontSize = 13.sp, lineHeight = 18.sp)
+                Text(stringResource(if (data.online) R.string.settings_identity_note_anon else R.string.settings_identity_note), color = AppColors.TextMuted, fontSize = 13.sp, lineHeight = 18.sp)
             }
 
             // Blokovaní
@@ -85,10 +88,10 @@ fun SettingsScreen(
                 if (data.blocked.isEmpty()) {
                     Text(stringResource(R.string.settings_blocked_empty), color = AppColors.TextMuted, fontSize = 14.sp)
                 }
-                data.blocked.forEach { p ->
+                data.blocked.forEach { (key, name) ->
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text(p, color = AppColors.Text, fontSize = 15.sp, modifier = Modifier.weight(1f))
-                        TextButton(onClick = { onUnblock(p) }) {
+                        Text(name.ifEmpty { key }, color = AppColors.Text, fontSize = 15.sp, modifier = Modifier.weight(1f))
+                        TextButton(onClick = { onUnblock(key) }) {
                             Text(stringResource(R.string.settings_unblock), color = AppColors.Amber, fontWeight = FontWeight.Bold)
                         }
                     }
@@ -118,7 +121,11 @@ fun SettingsScreen(
             ) { Text(stringResource(R.string.settings_wipe), fontWeight = FontWeight.Bold) }
 
             Text(
-                stringResource(R.string.settings_version, BuildConfig.VERSION_NAME),
+                stringResource(
+                    R.string.settings_version,
+                    BuildConfig.VERSION_NAME,
+                    stringResource(if (data.online) R.string.mode_online else R.string.mode_local),
+                ),
                 color = AppColors.TextMuted,
                 fontSize = 12.sp,
                 modifier = Modifier.padding(top = 16.dp, bottom = 24.dp),

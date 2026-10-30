@@ -2,8 +2,14 @@ package sk.odkazprevodica.app.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.annotation.StringRes
+import com.google.firebase.FirebaseApp
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONArray
 import org.json.JSONObject
@@ -16,11 +22,12 @@ enum class SendResult { SENT, LIMIT_PLATE, LIMIT_DAY }
 enum class AddCarResult { ADDED, INVALID, DUPLICATE, LIMIT }
 
 /**
- * Lokálne úložisko (v0.2). Všetko je v telefóne – v ďalšej verzii sa
- * odosielanie a schránka presunú na Firebase, rozhranie zostane rovnaké.
+ * Jediný vstup UI k dátam.
  *
- * Kým nie je server: odkaz poslaný na vlastné auto sa doručí do vlastnej
- * schránky, aby sa dal celý tok otestovať na jednom telefóne.
+ * - Ak je v aplikácii Firebase (súbor google-services.json pri zostavení),
+ *   odkazy idú cez server medzi zariadeniami – [RemoteBackend].
+ * - Inak beží testovací režim: všetko v telefóne, odkaz na vlastnú ŠPZ
+ *   príde do vlastnej schránky.
  */
 object Repository {
 
@@ -31,13 +38,38 @@ object Repository {
     private val _state = MutableStateFlow(AppData())
     val state: StateFlow<AppData> = _state.asStateFlow()
 
+    private val _events = MutableSharedFlow<Int>(extraBufferCapacity = 4, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+
+    /** Jednorazové hlásenia pre UI (ID textu), napr. chyba odoslania. */
+    val events: SharedFlow<Int> = _events.asSharedFlow()
+
+    private var remote: RemoteBackend? = null
+
     fun init(context: Context) {
         if (::prefs.isInitialized) return
         prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val stored = prefs.getString(KEY, null)
-        val loaded = stored?.let { runCatching { decode(it) }.getOrNull() }
-        _state.value = (loaded ?: firstRun()).purgeOld()
-        save()
+        if (FirebaseApp.getApps(context).isNotEmpty()) {
+            _state.value = AppData(online = true)
+            remote = RemoteBackend(
+                prefs = prefs,
+                update = { f -> _state.value = f(_state.value) },
+                current = { _state.value },
+                emit = { res -> _events.tryEmit(res) },
+            ).also { it.start() }
+        } else {
+            val loaded = prefs.getString(KEY, null)?.let { runCatching { decode(it) }.getOrNull() }
+            _state.value = (loaded ?: firstRun()).purgeOld()
+            saveLocal()
+        }
+    }
+
+    internal fun emit(@StringRes res: Int) {
+        _events.tryEmit(res)
+    }
+
+    /** Nový FCM token (z MessagingService). */
+    fun onNewPushToken(token: String) {
+        remote?.saveToken(token)
     }
 
     // ---- Autá ----
@@ -45,25 +77,32 @@ object Repository {
     fun addCar(plateInput: String, alias: String): AddCarResult {
         val plate = normalizePlate(plateInput)
         val s = _state.value
+        val name = alias.trim().ifEmpty { displayPlate(plate) }
         return when {
             !isValidSkPlate(plate) -> AddCarResult.INVALID
             s.car(plate) != null -> AddCarResult.DUPLICATE
             s.cars.size >= MAX_CARS -> AddCarResult.LIMIT
             else -> {
-                // TODO (server): ak ŠPZ už niekto sleduje, vyžiadať pozvánku alebo nahlásiť spor.
-                update { it.copy(cars = it.cars + Car(plate, alias.trim().ifEmpty { displayPlate(plate) })) }
+                val r = remote
+                if (r != null) r.addCar(plate, name)
+                else updateLocal { it.copy(cars = it.cars + Car(plate, name)) }
                 AddCarResult.ADDED
             }
         }
     }
 
-    fun renameCar(plate: String, alias: String) = update { s ->
-        s.copy(cars = s.cars.map { if (it.plate == plate) it.copy(alias = alias.trim().ifEmpty { displayPlate(plate) }) else it })
+    fun renameCar(plate: String, alias: String) {
+        val name = alias.trim().ifEmpty { displayPlate(plate) }
+        val r = remote
+        if (r != null) r.renameCar(plate, name)
+        else updateLocal { s -> s.copy(cars = s.cars.map { if (it.plate == plate) it.copy(alias = name) else it }) }
     }
 
-    /** Odobratie auta zmaže aj jeho odkazy. */
-    fun removeCar(plate: String) = update { s ->
-        s.copy(cars = s.cars.filterNot { it.plate == plate }, inbox = s.inbox.filterNot { it.plate == plate })
+    /** Odobratie auta zmaže aj jeho odkazy v tomto telefóne. */
+    fun removeCar(plate: String) {
+        val r = remote
+        if (r != null) r.removeCar(plate)
+        else updateLocal { s -> s.copy(cars = s.cars.filterNot { it.plate == plate }, inbox = s.inbox.filterNot { it.plate == plate }) }
     }
 
     // ---- Odosielanie ----
@@ -71,52 +110,94 @@ object Repository {
     fun sendMessage(plateInput: String, template: MessageTemplate): SendResult {
         val plate = normalizePlate(plateInput)
         val s = _state.value
+        // Limity kontroluje aj server; tu iba aby používateľ dostal vysvetlenie.
         val today = s.sent.filter { isToday(it.timestamp) }
         if (today.size >= LIMIT_PER_DAY) return SendResult.LIMIT_DAY
         if (today.count { it.plate == plate } >= LIMIT_PER_PLATE_PER_DAY) return SendResult.LIMIT_PLATE
 
-        val now = System.currentTimeMillis()
-        update { st ->
-            val sent = st.sent + SentMessage(newId(), plate, template, now)
-            // Lokálny test: odkaz na vlastné auto príde do vlastnej schránky.
-            // TODO (server): Cloud Function doručí odkaz majiteľovi, inak ho zahodí bez stopy.
-            val inbox = if (st.car(plate) != null) {
-                st.inbox + ReceivedMessage(newId(), plate, template, st.pseudonym, now)
-            } else st.inbox
-            st.copy(sent = sent, inbox = inbox)
+        val r = remote
+        if (r != null) {
+            r.sendMessage(plate, template)
+        } else {
+            val now = System.currentTimeMillis()
+            updateLocal { st ->
+                val id = newId()
+                val sent = st.sent + SentMessage(id, plate, template, now)
+                // Testovací režim: odkaz na vlastné auto príde do vlastnej schránky.
+                val inbox = if (st.car(plate) != null) {
+                    st.inbox + ReceivedMessage(id, plate, template, st.pseudonym, now)
+                } else st.inbox
+                st.copy(sent = sent, inbox = inbox)
+            }
         }
         return SendResult.SENT
     }
 
     // ---- Prijaté odkazy ----
 
-    fun markSeen(id: String) = updateMessage(id) { it.copy(seen = true) }
-    fun confirmRead(id: String) = updateMessage(id) { it.copy(seen = true, readConfirmed = true) }
-    fun reply(id: String, reply: ReplyTemplate) = updateMessage(id) { it.copy(seen = true, reply = reply) }
-    fun report(id: String) = updateMessage(id) { it.copy(reported = true) }
+    fun markSeen(id: String) {
+        val r = remote
+        if (r != null) r.markSeen(id) else updateMessageLocal(id) { it.copy(seen = true) }
+    }
+
+    fun confirmRead(id: String) {
+        val r = remote
+        if (r != null) r.updateMessage(id, mapOf("readConfirmed" to true))
+        else {
+            updateMessageLocal(id) { it.copy(seen = true, readConfirmed = true) }
+            updateLocal { s -> s.copy(sent = s.sent.map { if (it.id == id) it.copy(readConfirmed = true) else it }) }
+        }
+    }
+
+    fun reply(id: String, reply: ReplyTemplate) {
+        val r = remote
+        if (r != null) {
+            r.markSeen(id)
+            r.updateMessage(id, mapOf("reply" to reply.id))
+        } else {
+            updateMessageLocal(id) { it.copy(seen = true, reply = reply) }
+            // Testovací režim: odpoveď na vlastný odkaz sa ukáže v Odoslaných.
+            updateLocal { s -> s.copy(sent = s.sent.map { if (it.id == id) it.copy(reply = reply) else it }) }
+        }
+    }
+
+    fun report(id: String) {
+        val r = remote
+        if (r != null) r.updateMessage(id, mapOf("reported" to true))
+        else updateMessageLocal(id) { it.copy(reported = true) }
+    }
 
     fun blockSenderOf(id: String) {
-        val sender = _state.value.inbox.firstOrNull { it.id == id }?.senderPseudonym ?: return
-        update { if (sender in it.blocked) it else it.copy(blocked = it.blocked + sender) }
+        val m = _state.value.inbox.firstOrNull { it.id == id } ?: return
+        val r = remote
+        if (r != null) r.block(m.blockKey, m.senderPseudonym)
+        else updateLocal { it.copy(blocked = it.blocked + (m.blockKey to m.senderPseudonym)) }
     }
 
-    fun unblock(pseudonym: String) = update { it.copy(blocked = it.blocked - pseudonym) }
+    fun unblock(key: String) {
+        val r = remote
+        if (r != null) r.unblock(key) else updateLocal { it.copy(blocked = it.blocked - key) }
+    }
 
-    /** Zmaže všetko a vytvorí nový pseudonym (bez ukážkových dát). */
+    /** Zmaže všetko a vytvorí nové anonymné konto / nový pseudonym. */
     fun wipeAll() {
-        _state.value = AppData(pseudonym = newPseudonym())
-        save()
+        val r = remote
+        if (r != null) r.wipeAll()
+        else {
+            _state.value = AppData(pseudonym = newPseudonym())
+            saveLocal()
+        }
     }
 
-    // ---- Interné ----
+    // ---- Lokálny režim ----
 
-    private fun updateMessage(id: String, f: (ReceivedMessage) -> ReceivedMessage) = update { s ->
+    private fun updateMessageLocal(id: String, f: (ReceivedMessage) -> ReceivedMessage) = updateLocal { s ->
         s.copy(inbox = s.inbox.map { if (it.id == id) f(it) else it })
     }
 
-    private fun update(f: (AppData) -> AppData) {
+    private fun updateLocal(f: (AppData) -> AppData) {
         _state.value = f(_state.value)
-        save()
+        saveLocal()
     }
 
     private fun firstRun() = AppData(
@@ -130,11 +211,11 @@ object Repository {
         return copy(inbox = inbox.filter { it.timestamp >= limit }, sent = sent.filter { it.timestamp >= limit })
     }
 
-    private fun newPseudonym() = "Vodič #" + Random.nextInt(1000, 10000)
+    internal fun newPseudonym() = "Vodič #" + Random.nextInt(1000, 10000)
     private fun newId() = UUID.randomUUID().toString()
 
-    private fun save() {
-        if (::prefs.isInitialized) prefs.edit().putString(KEY, encode(_state.value)).apply()
+    private fun saveLocal() {
+        if (::prefs.isInitialized && remote == null) prefs.edit().putString(KEY, encode(_state.value)).apply()
     }
 
     private fun encode(s: AppData): String = JSONObject().apply {
@@ -153,10 +234,11 @@ object Repository {
         })
         put("sent", JSONArray().apply {
             s.sent.forEach {
-                put(JSONObject().put("id", it.id).put("plate", it.plate).put("tpl", it.template.id).put("ts", it.timestamp))
+                put(JSONObject().put("id", it.id).put("plate", it.plate).put("tpl", it.template.id).put("ts", it.timestamp)
+                    .put("reply", it.reply?.id ?: "").put("read", it.readConfirmed))
             }
         })
-        put("blocked", JSONArray(s.blocked))
+        put("blocked", JSONObject().apply { s.blocked.forEach { (k, v) -> put(k, v) } })
     }.toString()
 
     private fun decode(raw: String): AppData {
@@ -165,7 +247,12 @@ object Repository {
             val a = optJSONArray(name) ?: return emptyList()
             return (0 until a.length()).map { a.getJSONObject(it) }
         }
-        val blockedArr = o.optJSONArray("blocked")
+        // v0.2 ukladala blokovaných ako zoznam pseudonymov
+        val blocked: Map<String, String> = o.optJSONObject("blocked")?.let { b ->
+            b.keys().asSequence().associateWith { b.optString(it) }
+        } ?: o.optJSONArray("blocked")?.let { a ->
+            (0 until a.length()).map { a.getString(it) }.associateWith { it }
+        } ?: emptyMap()
         return AppData(
             pseudonym = o.optString("pseudonym").ifEmpty { newPseudonym() },
             cars = o.arr("cars").map { Car(it.getString("plate"), it.optString("alias")) },
@@ -185,9 +272,13 @@ object Repository {
             },
             sent = o.arr("sent").mapNotNull { m ->
                 val tpl = MessageTemplate.fromId(m.getString("tpl")) ?: return@mapNotNull null
-                SentMessage(m.getString("id"), m.getString("plate"), tpl, m.getLong("ts"))
+                SentMessage(
+                    m.getString("id"), m.getString("plate"), tpl, m.getLong("ts"),
+                    reply = ReplyTemplate.fromId(m.optString("reply")),
+                    readConfirmed = m.optBoolean("read"),
+                )
             },
-            blocked = blockedArr?.let { a -> (0 until a.length()).map { a.getString(it) } } ?: emptyList(),
+            blocked = blocked,
         )
     }
 }

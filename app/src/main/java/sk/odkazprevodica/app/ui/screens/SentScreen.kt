@@ -1,5 +1,6 @@
 package sk.odkazprevodica.app.ui.screens
 
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -27,6 +28,8 @@ fun SentScreen(sent: List<SentMessage>, onTabSelect: (Tab) -> Unit) {
     val today = stringResource(R.string.today)
     val yesterday = stringResource(R.string.yesterday)
     Scaffold(
+        // Okraje systému rieši MainActivity (safeDrawing) – tu nič navyše.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = AppColors.Background,
         bottomBar = { BottomBar(selected = Tab.Sent, onSelect = onTabSelect) },
     ) { padding ->
@@ -54,10 +57,16 @@ fun SentScreen(sent: List<SentMessage>, onTabSelect: (Tab) -> Unit) {
                 item { Text(stringResource(R.string.sent_empty), color = AppColors.Text, fontSize = 16.sp, modifier = Modifier.padding(top = 16.dp)) }
             }
             items(sent.sortedByDescending { it.timestamp }, key = { it.id }) { m ->
+                val reply = m.reply
+                val status = when {
+                    reply != null -> "  ·  " + stringResource(R.string.sent_reply, stringResource(reply.label))
+                    m.readConfirmed -> "  ·  " + stringResource(R.string.sent_read)
+                    else -> ""
+                }
                 MessageRow(
                     template = m.template,
-                    meta = formatTime(m.timestamp, today, yesterday),
-                    unread = false,
+                    meta = formatTime(m.timestamp, today, yesterday) + status,
+                    unread = reply != null,
                     onClick = null,
                     leading = { PlateChip(m.plate) },
                 )

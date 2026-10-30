@@ -18,13 +18,18 @@ data class ReceivedMessage(
     val template: MessageTemplate,
     val senderPseudonym: String,
     val timestamp: Long,
+    /** Interné ID odosielateľa (server). Lokálne prázdne. */
+    val senderUid: String = "",
     /** Videné v aplikácii (iba lokálne, odosielateľ to nevidí). */
     val seen: Boolean = false,
     /** Majiteľ výslovne označil ako prečítané – toto by sa dozvedel odosielateľ. */
     val readConfirmed: Boolean = false,
     val reply: ReplyTemplate? = null,
     val reported: Boolean = false,
-)
+) {
+    /** Kľúč pre blokovanie: ID odosielateľa na serveri, inak pseudonym. */
+    val blockKey: String get() = senderUid.ifEmpty { senderPseudonym }
+}
 
 /** Odkaz, ktorý som odoslal. Bez stavu doručenia – zámerne. */
 data class SentMessage(
@@ -32,6 +37,9 @@ data class SentMessage(
     val plate: String,
     val template: MessageTemplate,
     val timestamp: Long,
+    /** Odpoveď majiteľa – príde iba ak odpísal. */
+    val reply: ReplyTemplate? = null,
+    val readConfirmed: Boolean = false,
 )
 
 /** Celý lokálny stav aplikácie. */
@@ -40,11 +48,14 @@ data class AppData(
     val cars: List<Car> = emptyList(),
     val inbox: List<ReceivedMessage> = emptyList(),
     val sent: List<SentMessage> = emptyList(),
-    val blocked: List<String> = emptyList(),
+    /** Zablokovaní: kľúč (ID odosielateľa) → pseudonym na zobrazenie. */
+    val blocked: Map<String, String> = emptyMap(),
+    /** true = odkazy idú cez server (Firebase), false = testovací režim v telefóne. */
+    val online: Boolean = false,
 ) {
     /** Prijaté odkazy bez zablokovaných odosielateľov, najnovšie prvé. */
     val visibleInbox: List<ReceivedMessage>
-        get() = inbox.filter { it.senderPseudonym !in blocked }.sortedByDescending { it.timestamp }
+        get() = inbox.filter { it.blockKey !in blocked }.sortedByDescending { it.timestamp }
 
     fun inboxFor(plate: String) = visibleInbox.filter { it.plate == plate }
     fun unreadFor(plate: String) = inboxFor(plate).count { !it.seen }

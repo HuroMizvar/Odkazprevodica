@@ -1,6 +1,7 @@
 package sk.odkazprevodica.app.ui.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -56,6 +57,8 @@ fun CarInboxScreen(
     val yesterday = stringResource(R.string.yesterday)
 
     Scaffold(
+        // Okraje systému rieši MainActivity (safeDrawing) – tu nič navyše.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = AppColors.Background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = { BackHeader(displayPlate(car.plate), subtitle = car.alias, onBack = onBack) },

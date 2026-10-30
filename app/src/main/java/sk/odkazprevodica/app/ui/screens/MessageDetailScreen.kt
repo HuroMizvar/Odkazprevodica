@@ -2,6 +2,7 @@ package sk.odkazprevodica.app.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -80,6 +82,8 @@ fun MessageDetailScreen(
     }
 
     Scaffold(
+        // Okraje systému rieši MainActivity (safeDrawing) – tu nič navyše.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = AppColors.Background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -162,12 +166,21 @@ fun MessageDetailScreen(
             }
 
             Spacer(Modifier.height(28.dp))
+            // Neutrálne, kým majiteľ neoznačí; po označení sa zvýrazní.
+            val read = message.readConfirmed
             OutlinedButton(
-                onClick = { onMarkRead(); scope.launch { snackbarHostState.showSnackbar(markedText) } },
-                enabled = !message.readConfirmed,
+                onClick = {
+                    if (!read) {
+                        onMarkRead()
+                        scope.launch { snackbarHostState.showSnackbar(markedText) }
+                    }
+                },
                 shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.5.dp, AppColors.Amber),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = AppColors.Amber),
+                border = BorderStroke(1.5.dp, if (read) AppColors.Amber else AppColors.Outline),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = if (read) AppColors.Amber else Color.Transparent,
+                    contentColor = if (read) AppColors.OnAmber else AppColors.Text,
+                ),
                 modifier = Modifier.fillMaxWidth().height(52.dp),
             ) {
                 Icon(AppIcons.Check, contentDescription = null, modifier = Modifier.size(20.dp))
