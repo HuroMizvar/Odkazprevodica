@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "548124927013",
+    "project_id": "odkaz-pre-vodica",
+    "storage_bucket": "odkaz-pre-vodica.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:548124927013:android:d429f70aeef430bee2cbcc",
+        "android_client_info": {
+          "package_name": "sk.odkazprevodica.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCeYKGzB_gAX_vJeQeaSisayMlWevepuRM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
