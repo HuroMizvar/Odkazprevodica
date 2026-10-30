@@ -14,6 +14,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Ak je v repozitári nahraný ZIP s projektom (Odkazprevodica*.zip),
+      # rozbalí ho, nahradí ním súbory, ZIP zmaže a zmenu uloží do repozitára.
+      - name: Rozbaliť nahraný ZIP
+        run: |
+          shopt -s nullglob
+          zips=(Odkazprevodica*.zip)
+          if [ ${#zips[@]} -gt 0 ]; then
+            for z in "${zips[@]}"; do
+              echo "Rozbaľujem $z"
+              rm -rf /tmp/unz && mkdir /tmp/unz && unzip -q -o "$z" -d /tmp/unz
+              src=/tmp/unz/Odkazprevodica
+              [ -d "$src" ] || src=/tmp/unz
+              # súbory workflowov nemení (GitHub to automatom nedovolí)
+              rm -rf "$src/.git" "$src/.github"
+              cp -a "$src"/. ./
+              git rm -q "$z"
+            done
+            git config user.name "github-actions[bot]"
+            git config user.email "41898699+github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "Rozbalený nahraný ZIP" || true
+            git push
+          fi
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
