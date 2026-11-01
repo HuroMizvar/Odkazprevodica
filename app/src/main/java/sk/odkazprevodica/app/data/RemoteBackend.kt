@@ -105,7 +105,7 @@ internal class RemoteBackend(
         listeners += userRef.collection("sent").addSnapshotListener { snap, _ ->
             if (snap == null) return@addSnapshotListener
             val sent = snap.documents.mapNotNull { d ->
-                val tpl = MessageTemplate.fromId(d.getString("templateId")) ?: return@mapNotNull null
+                val tpl = MessageTemplate.fromId(d.getString("templateId").orEmpty()) ?: return@mapNotNull null
                 SentMessage(
                     id = d.id,
                     plate = d.getString("plate").orEmpty(),
@@ -146,7 +146,7 @@ internal class RemoteBackend(
     }
 
     private fun DocumentSnapshot.toReceived(plate: String): ReceivedMessage? {
-        val tpl = MessageTemplate.fromId(getString("templateId")) ?: return null
+        val tpl = MessageTemplate.fromId(getString("templateId").orEmpty()) ?: return null
         return ReceivedMessage(
             id = id,
             plate = plate,

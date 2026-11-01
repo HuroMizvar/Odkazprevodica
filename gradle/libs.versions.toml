@@ -10,6 +10,7 @@ camerax = "1.4.1"
 mlkitText = "16.0.1"
 firebaseBom = "33.7.0"
 googleServices = "4.4.2"
+guava = "33.3.1-android"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -31,6 +32,8 @@ firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.r
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
+# CameraX vracia ListenableFuture (Guava) – bez tejto knižnice sa skener neskompiluje
+guava = { group = "com.google.guava", name = "guava", version.ref = "guava" }
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation" }
 
 [plugins]
