@@ -19,8 +19,11 @@ android {
         minSdk = 26
         // Pred vydaním over aktuálnu požiadavku Google Play na targetSdk.
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.3.0"
+        // Číslo verzie = číslo zostavenia na GitHube (tag build-N v Releases).
+        // Podľa neho aplikácia v Nastaveniach pozná, že je k dispozícii novšia verzia.
+        val build = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 3
+        versionCode = build
+        versionName = "0.4.$build"
     }
 
     // Pevný testovací podpis: nové verzie z GitHub Actions sa dajú nainštalovať

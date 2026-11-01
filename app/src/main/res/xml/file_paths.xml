@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Súbory, ktoré aplikácia smie odovzdať inštalátoru (stiahnutá aktualizácia). -->
+<paths>
+    <cache-path name="updates" path="updates/" />
+</paths>

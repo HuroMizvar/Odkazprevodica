@@ -56,6 +56,8 @@ fun HomeScreen(
     onCarClick: (Car) -> Unit,
     onAddCarClick: () -> Unit,
     onTabSelect: (Tab) -> Unit,
+    updateAvailable: Boolean = false,
+    onUpdateClick: () -> Unit = {},
 ) {
     val cars = data.cars
     Scaffold(
@@ -100,6 +102,24 @@ fun HomeScreen(
                     Box(contentAlignment = Alignment.Center) {
                         Text("#" + data.pseudonym.takeLast(4), color = AppColors.Text, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
+                }
+            }
+
+            if (updateAvailable) {
+                Surface(
+                    onClick = onUpdateClick,
+                    shape = RoundedCornerShape(14.dp),
+                    color = AppColors.AmberSelected,
+                    border = BorderStroke(1.5.dp, AppColors.Amber),
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp),
+                ) {
+                    Text(
+                        stringResource(R.string.update_banner),
+                        color = AppColors.Amber,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    )
                 }
             }
 

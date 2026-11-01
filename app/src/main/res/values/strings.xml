@@ -159,4 +159,19 @@
     <string name="notif_reply_title">Odpoveď vodiča · %1$s</string>
     <string name="notif_permission_rationale">Povoľ upozornenia, aby si sa o odkaze dozvedel hneď.</string>
     <string name="error_offline">Nepodarilo sa odoslať. Skontroluj pripojenie na internet.</string>
+
+    <!-- Aktualizácia -->
+    <string name="update_title">Aktualizácia</string>
+    <string name="update_current">Nainštalovaná verzia: zostavenie %1$d</string>
+    <string name="update_up_to_date">Máš najnovšiu verziu (zostavenie %1$d).</string>
+    <string name="update_check">Skontrolovať aktualizáciu</string>
+    <string name="update_checking">Overujem, či je nová verzia…</string>
+    <string name="update_available">Nová verzia: zostavenie %1$d (máš %2$d)</string>
+    <string name="update_download">Stiahnuť a nainštalovať</string>
+    <string name="update_downloading">Sťahujem… %1$d %%</string>
+    <string name="update_ready">Stiahnuté. Údaje v aplikácii zostanú zachované.</string>
+    <string name="update_install">Nainštalovať</string>
+    <string name="update_permission">Na inštaláciu treba raz povoliť „Inštalovať neznáme aplikácie“ pre Odkaz pre vodiča. Potom sa sem vráť.</string>
+    <string name="update_allow">Povoliť inštaláciu</string>
+    <string name="update_banner">Je dostupná nová verzia aplikácie – ťukni pre aktualizáciu</string>
 </resources>
