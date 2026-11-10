@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -82,7 +83,7 @@ fun AppNavigation(openPlate: String? = null, onPlateOpened: () -> Unit = {}) {
 
     // Hlásenia z dátovej vrstvy (napr. bez internetu).
     LaunchedEffect(Unit) {
-        Repository.events.collect { res -> snackbar.showSnackbar(context.getString(res)) }
+        Repository.events.collect { text -> snackbar.showSnackbar(text, withDismissAction = true, duration = SnackbarDuration.Long) }
     }
 
     // Kontrola novej verzie pri štarte (GitHub Releases).

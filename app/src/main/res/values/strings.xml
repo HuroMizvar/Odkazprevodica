@@ -174,4 +174,10 @@
     <string name="update_permission">Na inštaláciu treba raz povoliť „Inštalovať neznáme aplikácie“ pre Odkaz pre vodiča. Potom sa sem vráť.</string>
     <string name="update_allow">Povoliť inštaláciu</string>
     <string name="update_banner">Je dostupná nová verzia aplikácie – ťukni pre aktualizáciu</string>
+
+    <!-- Štatistika na Domove -->
+    <string name="stats_title">Odkaz pre vodiča na Slovensku</string>
+    <string name="stats_plates">ŠPZ v aplikácii</string>
+    <string name="stats_sk">vozidiel v SR</string>
+    <string name="stats_share">%1$s vozidiel v SR je v aplikácii</string>
 </resources>

@@ -33,6 +33,12 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.pseudonym;
     }
 
+    // súhrnná štatistika (počet ŠPZ v aplikácii, počet vozidiel v SR) – zapisuje iba server
+    match /stats/{doc} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
     match /users/{uid} {
       allow read, delete: if isSelf(uid);
       allow create: if isSelf(uid)

@@ -37,6 +37,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import sk.odkazprevodica.app.R
+import java.text.NumberFormat
+import java.util.Locale
 import sk.odkazprevodica.app.data.AppData
 import sk.odkazprevodica.app.data.Car
 import sk.odkazprevodica.app.data.formatTime
@@ -142,6 +144,13 @@ fun HomeScreen(
                 }
             }
 
+            // Štatistika (iba so serverom)
+            val plates = data.uniquePlates
+            val total = data.vehiclesSK
+            if (data.online && plates != null && total != null && total > 0) {
+                StatsCard(plates, total)
+            }
+
             // Moje autá
             Row(Modifier.fillMaxWidth().padding(top = 28.dp, bottom = 10.dp)) {
                 SectionLabel(stringResource(R.string.home_my_cars), Modifier.weight(1f))
@@ -204,6 +213,48 @@ private fun CarRow(car: Car, unreadCount: Int, lastMessageLabel: String?, onClic
                     Text(unreadCount.toString(), color = AppColors.OnAmber, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
                 }
             }
+        }
+    }
+}
+
+private val skNumbers: NumberFormat = NumberFormat.getIntegerInstance(Locale.forLanguageTag("sk-SK"))
+
+/** Podiel v percentách po slovensky: „0,03 %“, malé hodnoty „< 0,01 %“. */
+private fun sharePercent(part: Long, total: Long): String {
+    val pct = part * 100.0 / total
+    if (part > 0 && pct < 0.01) return "< 0,01 %"
+    val f = NumberFormat.getNumberInstance(Locale.forLanguageTag("sk-SK")).apply {
+        minimumFractionDigits = if (pct < 1) 2 else 1
+        maximumFractionDigits = if (pct < 1) 2 else 1
+    }
+    return f.format(pct) + " %"
+}
+
+@Composable
+private fun StatsCard(plates: Long, total: Long) {
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = AppColors.Surface,
+        border = BorderStroke(1.dp, AppColors.Outline),
+        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            SectionLabel(stringResource(R.string.stats_title))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.weight(1f)) {
+                    Text(skNumbers.format(plates), color = AppColors.Amber, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold)
+                    Text(stringResource(R.string.stats_plates), color = AppColors.TextMuted, fontSize = 13.sp)
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(skNumbers.format(total), color = AppColors.Text, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold)
+                    Text(stringResource(R.string.stats_sk), color = AppColors.TextMuted, fontSize = 13.sp)
+                }
+            }
+            Text(
+                stringResource(R.string.stats_share, sharePercent(plates, total)),
+                color = AppColors.TextSoft,
+                fontSize = 13.sp,
+            )
         }
     }
 }

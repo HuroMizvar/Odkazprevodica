@@ -87,7 +87,10 @@ fun SettingsScreen(
             // Identita
             SectionLabel(stringResource(R.string.settings_identity), Modifier.padding(top = 24.dp, bottom = 8.dp))
             Card {
-                Text(data.pseudonym, color = AppColors.Amber, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+                Text(data.pseudonym.ifEmpty { "—" }, color = AppColors.Amber, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+                if (data.online && data.serverStatus.isNotEmpty()) {
+                    Text("Server: " + data.serverStatus, color = AppColors.TextSoft, fontSize = 13.sp, lineHeight = 18.sp)
+                }
                 Text(stringResource(if (data.online) R.string.settings_identity_note_anon else R.string.settings_identity_note), color = AppColors.TextMuted, fontSize = 13.sp, lineHeight = 18.sp)
             }
 

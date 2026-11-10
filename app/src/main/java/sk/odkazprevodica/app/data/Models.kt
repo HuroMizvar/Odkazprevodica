@@ -52,6 +52,12 @@ data class AppData(
     val blocked: Map<String, String> = emptyMap(),
     /** true = odkazy idú cez server (Firebase), false = testovací režim v telefóne. */
     val online: Boolean = false,
+    /** Stav pripojenia na server (diagnostika v Nastaveniach). */
+    val serverStatus: String = "",
+    /** Počet unikátnych ŠPZ v aplikácii (zo servera). */
+    val uniquePlates: Long? = null,
+    /** Počet registrovaných vozidiel v SR (zo servera, nastavuje sa ručne). */
+    val vehiclesSK: Long? = null,
 ) {
     /** Prijaté odkazy bez zablokovaných odosielateľov, najnovšie prvé. */
     val visibleInbox: List<ReceivedMessage>

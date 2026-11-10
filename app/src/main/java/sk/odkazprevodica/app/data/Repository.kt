@@ -38,10 +38,10 @@ object Repository {
     private val _state = MutableStateFlow(AppData())
     val state: StateFlow<AppData> = _state.asStateFlow()
 
-    private val _events = MutableSharedFlow<Int>(extraBufferCapacity = 4, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    private val _events = MutableSharedFlow<String>(extraBufferCapacity = 4, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
-    /** Jednorazové hlásenia pre UI (ID textu), napr. chyba odoslania. */
-    val events: SharedFlow<Int> = _events.asSharedFlow()
+    /** Jednorazové hlásenia pre UI, napr. chyba odoslania (s príčinou). */
+    val events: SharedFlow<String> = _events.asSharedFlow()
 
     private var remote: RemoteBackend? = null
 
@@ -63,9 +63,6 @@ object Repository {
         }
     }
 
-    internal fun emit(@StringRes res: Int) {
-        _events.tryEmit(res)
-    }
 
     /** Nový FCM token (z MessagingService). */
     fun onNewPushToken(token: String) {

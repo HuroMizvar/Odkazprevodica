@@ -8,6 +8,8 @@
  * 2. onMessageUpdated – majiteľ odpovedal / označil ako prečítané:
  *    - prepíše sa do odoslaných u odosielateľa + push s odpoveďou
  * 3. cleanup – každý deň zmaže odkazy staršie ako 30 dní
+ * 4. updateStats – 1. dňa v mesiaci spočíta unikátne ŠPZ v aplikácii
+ *    (ŠPZ sledovaná viacerými ľuďmi sa ráta iba raz)
  */
 const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
@@ -174,4 +176,54 @@ exports.cleanup = onSchedule({ schedule: "every day 03:00", timeZone: "Europe/Br
   const messages = await deleteOlderThan("messages", cutoff);
   const sent = await deleteOlderThan("sent", cutoff);
   logger.info("mazanie starých odkazov", { messages, sent });
+});
+
+// ---- Štatistika: počet unikátnych ŠPZ ----
+//
+// Dokument stats/global (čítajú ho všetci prihlásení, zapisuje iba server, raz za mesiac):
+//   uniquePlates          – počet ŠPZ, ktoré sleduje aspoň 1 človek
+//   registeredVehiclesSK  – počet vozidiel v SR; meníš ho ručne vo Firebase konzole
+//                           (Firestore Database → stats → global)
+
+const REGISTERED_VEHICLES_SK = 3700000; // počiatočná hodnota, neskôr sa mení v konzole
+const statsRef = () => db.collection("stats").doc("global");
+
+/** Presný prepočet: spočíta ŠPZ, ktoré majú aspoň jedného sledovateľa. */
+async function recountStats() {
+  // po stránkach, aby to zvládlo aj milióny záznamov
+  const plates = new Set();
+  let last = null;
+  for (;;) {
+    let q = db.collectionGroup("members").orderBy(admin.firestore.FieldPath.documentId()).select().limit(10000);
+    if (last) q = q.startAfter(last);
+    const page = await q.get();
+    if (page.empty) break;
+    page.docs.forEach((d) => plates.add(d.ref.parent.parent.id));
+    last = page.docs[page.docs.length - 1];
+  }
+  const ref = statsRef();
+  const snap = await ref.get();
+  const data = {
+    uniquePlates: plates.size,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+  if (!snap.exists || snap.get("registeredVehiclesSK") === undefined) {
+    data.registeredVehiclesSK = REGISTERED_VEHICLES_SK;
+  }
+  await ref.set(data, { merge: true });
+  return plates.size;
+}
+
+// Raz za mesiac (1. deň o 4:00). Prepočet číta všetkých sledovateľov:
+// pri 3,7 mil. ŠPZ ~3,7 mil. čítaní mesačne (odhad ~1–2 €), bez nákladov
+// pri každej registrácii. Ručné spustenie v Cloud Shell:
+//   gcloud scheduler jobs run firebase-schedule-updateStats-europe-west1 --location=europe-west1
+exports.updateStats = onSchedule({
+  schedule: "0 4 1 * *",
+  timeZone: "Europe/Bratislava",
+  timeoutSeconds: 540,
+  memory: "1GiB",
+}, async () => {
+  const uniquePlates = await recountStats();
+  logger.info("štatistika ŠPZ", { uniquePlates });
 });

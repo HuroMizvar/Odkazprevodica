@@ -3,15 +3,17 @@ package sk.odkazprevodica.app.data
 import android.content.SharedPreferences
 import android.os.Handler
 import android.os.Looper
+import com.google.android.gms.tasks.OnFailureListener
+import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.messaging.FirebaseMessaging
-import sk.odkazprevodica.app.R
 
 /**
  * Odkazy cez Firebase.
@@ -29,7 +31,7 @@ internal class RemoteBackend(
     private val prefs: SharedPreferences,
     private val update: ((AppData) -> AppData) -> Unit,
     private val current: () -> AppData,
-    private val emit: (Int) -> Unit,
+    private val emit: (String) -> Unit,
 ) {
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseFirestore.getInstance()
@@ -45,10 +47,53 @@ internal class RemoteBackend(
 
     fun start() {
         val user = auth.currentUser
-        if (user != null) onSignedIn(user.uid)
-        else auth.signInAnonymously()
-            .addOnSuccessListener { r -> r.user?.uid?.let(::onSignedIn) }
-            .addOnFailureListener { emit(R.string.error_offline) }
+        if (user != null) {
+            setStatus("Prihlásený (anonymne)")
+            onSignedIn(user.uid)
+            return
+        }
+        setStatus("Prihlasujem…")
+        auth.signInAnonymously()
+            .addOnSuccessListener { r ->
+                setStatus("Prihlásený (anonymne)")
+                r.user?.uid?.let(::onSignedIn)
+            }
+            .addOnFailureListener { e ->
+                val msg = "Prihlásenie zlyhalo: " + describe(e)
+                setStatus(msg)
+                emit(msg)
+            }
+    }
+
+    private fun setStatus(text: String) = update { it.copy(serverStatus = text) }
+
+    /** Bez prihlásenia nič nefunguje – oznámi to a skúsi sa prihlásiť znova. */
+    private fun requireUid(): String? {
+        val u = uid
+        if (u == null) {
+            emit("Nie si prihlásený na server. Skúšam znova – o chvíľu to zopakuj.")
+            start()
+        }
+        return u
+    }
+
+    private fun fail(what: String) = OnFailureListener { e -> emit("$what: " + describe(e)) }
+
+    /** Zrozumiteľný popis chyby + technický kód pre diagnostiku. */
+    private fun describe(e: Exception): String {
+        val text = (e.message ?: e.javaClass.simpleName)
+        return when {
+            e is FirebaseFirestoreException && e.code == FirebaseFirestoreException.Code.PERMISSION_DENIED ->
+                "server odmietol prístup (pravidlá databázy). [$text]"
+            e is FirebaseFirestoreException && e.code == FirebaseFirestoreException.Code.UNAVAILABLE ->
+                "server je nedostupný – skontroluj internet. [$text]"
+            text.contains("OPERATION_NOT_ALLOWED", true) || text.contains("ADMIN_ONLY", true) ||
+                text.contains("CONFIGURATION_NOT_FOUND", true) ||
+                text.contains("restricted to administrators", true) ->
+                "vo Firebase nie je zapnuté anonymné prihlásenie (Authentication → Anonymous). [$text]"
+            e is FirebaseNetworkException -> "chýba internet. [$text]"
+            else -> text
+        }
     }
 
     private fun onSignedIn(uid: String) {
@@ -69,18 +114,52 @@ internal class RemoteBackend(
                             "createdAt" to FieldValue.serverTimestamp(),
                         )
                     ).addOnSuccessListener { refreshToken() }
+                        .addOnFailureListener(fail("Profil sa nepodarilo vytvoriť"))
                 } else refreshToken()
             }
-            .addOnFailureListener { handler.postDelayed({ if (this.uid == uid) ensureProfile(uid) }, 10_000) }
+            .addOnFailureListener { e ->
+                setStatus("Profil: " + describe(e))
+                handler.postDelayed({ if (this.uid == uid) ensureProfile(uid) }, 10_000)
+            }
     }
 
     private fun refreshToken() {
         FirebaseMessaging.getInstance().token.addOnSuccessListener { saveToken(it) }
     }
 
+    /**
+     * Štatistika pre Domov. Server ju prepočíta raz za mesiac, preto ju
+     * telefón zo servera číta najviac raz za deň a inak ukáže uloženú hodnotu.
+     */
+    private fun loadStats() {
+        val cachedPlates = prefs.getLong(KEY_STATS_PLATES, -1)
+        val cachedTotal = prefs.getLong(KEY_STATS_TOTAL, -1)
+        if (cachedPlates >= 0 && cachedTotal > 0) {
+            update { it.copy(uniquePlates = cachedPlates, vehiclesSK = cachedTotal) }
+        }
+        val fresh = System.currentTimeMillis() - prefs.getLong(KEY_STATS_AT, 0) < 24 * 60 * 60 * 1000L
+        if (fresh && cachedPlates >= 0) return
+
+        db.collection("stats").document("global").get().addOnSuccessListener { snap ->
+            if (!snap.exists()) return@addOnSuccessListener
+            val plates = snap.getLong("uniquePlates") ?: return@addOnSuccessListener
+            val total = snap.getLong("registeredVehiclesSK") ?: return@addOnSuccessListener
+            prefs.edit()
+                .putLong(KEY_STATS_PLATES, plates)
+                .putLong(KEY_STATS_TOTAL, total)
+                .putLong(KEY_STATS_AT, System.currentTimeMillis())
+                .apply()
+            update { it.copy(uniquePlates = plates, vehiclesSK = total) }
+        }
+    }
+
+    /** Token na push zapíše iba keď sa zmenil (šetrí zápisy do databázy). */
     fun saveToken(token: String) {
         val u = uid ?: return
+        val key = "$KEY_TOKEN:$u"
+        if (prefs.getString(key, null) == token) return
         db.collection("users").document(u).set(mapOf("fcmToken" to token), SetOptions.merge())
+            .addOnSuccessListener { prefs.edit().putString(key, token).apply() }
     }
 
     private fun listenUser(uid: String) {
@@ -101,6 +180,8 @@ internal class RemoteBackend(
             syncPlateListeners(joined)
             update { it.copy(cars = cars) }
         }
+
+        loadStats()
 
         listeners += userRef.collection("sent").addSnapshotListener { snap, _ ->
             if (snap == null) return@addSnapshotListener
@@ -169,14 +250,14 @@ internal class RemoteBackend(
     // ---- Akcie ----
 
     fun addCar(plate: String, alias: String) {
-        val u = uid ?: return emit(R.string.error_offline)
+        val u = requireUid() ?: return
         db.batch()
             .set(db.collection("users").document(u).collection("cars").document(plate),
                 mapOf("alias" to alias, "joinedAt" to FieldValue.serverTimestamp()))
             .set(db.collection("plates").document(plate).collection("members").document(u),
                 mapOf("joinedAt" to FieldValue.serverTimestamp()))
             .commit()
-            .addOnFailureListener { emit(R.string.error_offline) }
+            .addOnFailureListener(fail("Auto sa nepodarilo pridať"))
     }
 
     fun renameCar(plate: String, alias: String) {
@@ -193,7 +274,7 @@ internal class RemoteBackend(
     }
 
     fun sendMessage(plate: String, template: MessageTemplate) {
-        val u = uid ?: return emit(R.string.error_offline)
+        val u = requireUid() ?: return
         val msgRef = db.collection("plates").document(plate).collection("messages").document()
         db.batch()
             .set(msgRef, mapOf(
@@ -208,14 +289,14 @@ internal class RemoteBackend(
                 "createdAt" to FieldValue.serverTimestamp(),
             ))
             .commit()
-            .addOnFailureListener { emit(R.string.error_offline) }
+            .addOnFailureListener(fail("Odkaz sa nepodarilo odoslať"))
     }
 
     fun updateMessage(id: String, fields: Map<String, Any>) {
         val plate = current().inbox.firstOrNull { it.id == id }?.plate ?: return
         db.collection("plates").document(plate).collection("messages").document(id)
             .update(fields)
-            .addOnFailureListener { emit(R.string.error_offline) }
+            .addOnFailureListener(fail("Zmenu sa nepodarilo uložiť"))
     }
 
     fun markSeen(id: String) {
@@ -279,5 +360,9 @@ internal class RemoteBackend(
 
     companion object {
         private const val KEY_SEEN = "seen_ids"
+        private const val KEY_TOKEN = "push_token"
+        private const val KEY_STATS_PLATES = "stats_plates"
+        private const val KEY_STATS_TOTAL = "stats_total"
+        private const val KEY_STATS_AT = "stats_at"
     }
 }
