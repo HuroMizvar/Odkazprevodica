@@ -35,7 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.LifecycleResumeEffect
-import sk.odkazprevodica.app.update.Updater
+import sk.odkazprevodica.app.update.SelfUpdate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -80,9 +80,8 @@ fun SettingsScreen(
                 modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
             )
 
-            // Aktualizácia
-            SectionLabel(stringResource(R.string.update_title), Modifier.padding(top = 16.dp, bottom = 8.dp))
-            UpdateCard()
+            // Aktualizácia z GitHubu – iba v testovacej verzii, vo verzii pre Google Play nie je
+            SelfUpdate.SettingsSection()
 
             // Identita
             SectionLabel(stringResource(R.string.settings_identity), Modifier.padding(top = 24.dp, bottom = 8.dp))
@@ -158,81 +157,6 @@ fun SettingsScreen(
             onDismiss = { wiping = false },
         )
     }
-}
-
-@Composable
-private fun UpdateCard() {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val state by Updater.state.collectAsState()
-    // Po návrate z nastavení „Inštalovať neznáme aplikácie“ treba stav prečítať znova.
-    var permissionTick by remember { mutableStateOf(0) }
-    LifecycleResumeEffect(Unit) {
-        permissionTick++
-        onPauseOrDispose { }
-    }
-
-    Card {
-        when (val st = state) {
-            Updater.State.Idle, Updater.State.UpToDate -> {
-                Text(
-                    stringResource(if (st == Updater.State.UpToDate) R.string.update_up_to_date else R.string.update_current, Updater.currentBuild),
-                    color = AppColors.Text, fontSize = 15.sp,
-                )
-                UpdateButton(stringResource(R.string.update_check), filled = false) { scope.launch { Updater.check() } }
-            }
-            Updater.State.Checking -> {
-                Text(stringResource(R.string.update_checking), color = AppColors.TextMuted, fontSize = 15.sp)
-                LinearProgressIndicator(Modifier.fillMaxWidth(), color = AppColors.Amber, trackColor = AppColors.Outline)
-            }
-            is Updater.State.Available -> {
-                Text(
-                    stringResource(R.string.update_available, st.release.build, Updater.currentBuild),
-                    color = AppColors.Amber, fontSize = 16.sp, fontWeight = FontWeight.Bold,
-                )
-                UpdateButton(stringResource(R.string.update_download), filled = true) {
-                    scope.launch { Updater.download(context, st.release) }
-                }
-            }
-            is Updater.State.Downloading -> {
-                Text(stringResource(R.string.update_downloading, (st.progress * 100).toInt()), color = AppColors.Text, fontSize = 15.sp)
-                LinearProgressIndicator(
-                    progress = { st.progress },
-                    modifier = Modifier.fillMaxWidth(),
-                    color = AppColors.Amber,
-                    trackColor = AppColors.Outline,
-                )
-            }
-            is Updater.State.Ready -> {
-                val allowed = remember(permissionTick) { Updater.canInstall(context) }
-                if (allowed) {
-                    Text(stringResource(R.string.update_ready), color = AppColors.Text, fontSize = 15.sp)
-                    UpdateButton(stringResource(R.string.update_install), filled = true) { Updater.install(context, st.file) }
-                } else {
-                    Text(stringResource(R.string.update_permission), color = AppColors.Text, fontSize = 14.sp, lineHeight = 19.sp)
-                    UpdateButton(stringResource(R.string.update_allow), filled = true) { Updater.openInstallPermissionSettings(context) }
-                }
-            }
-            is Updater.State.Error -> {
-                Text(st.message, color = AppColors.Urgent, fontSize = 14.sp)
-                UpdateButton(stringResource(R.string.update_check), filled = false) { scope.launch { Updater.check() } }
-            }
-        }
-    }
-}
-
-@Composable
-private fun UpdateButton(text: String, filled: Boolean, onClick: () -> Unit) {
-    OutlinedButton(
-        onClick = onClick,
-        shape = RoundedCornerShape(14.dp),
-        border = BorderStroke(1.5.dp, if (filled) AppColors.Amber else AppColors.Outline),
-        colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = if (filled) AppColors.Amber else androidx.compose.ui.graphics.Color.Transparent,
-            contentColor = if (filled) AppColors.OnAmber else AppColors.Text,
-        ),
-        modifier = Modifier.fillMaxWidth().height(50.dp),
-    ) { Text(text, fontWeight = FontWeight.Bold, fontSize = 16.sp) }
 }
 
 @Composable

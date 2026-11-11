@@ -12,22 +12,24 @@ if (file("google-services.json").exists()) {
 
 android {
     namespace = "sk.odkazprevodica.app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "sk.odkazprevodica.app"
         minSdk = 26
-        // Pred vydaním over aktuálnu požiadavku Google Play na targetSdk.
-        targetSdk = 35
+        // Google Play od 31. 8. 2026 vyžaduje Android 16 (API 36).
+        targetSdk = 36
         // Číslo verzie = číslo zostavenia na GitHube (tag build-N v Releases).
         // Podľa neho aplikácia v Nastaveniach pozná, že je k dispozícii novšia verzia.
         val build = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 3
         versionCode = build
-        versionName = "0.4.$build"
+        versionName = "1.0.$build"
     }
 
-    // Pevný testovací podpis: nové verzie z GitHub Actions sa dajú nainštalovať
-    // cez staršiu bez odinštalovania. Nie je to podpis pre Google Play.
+    // Testovacia verzia (APK z GitHubu): pevný testovací podpis, aby sa nové
+    // verzie dali nainštalovať cez staršie. Nie je to podpis pre Google Play.
+    // Verzia pre Google Play (AAB): podpis „upload key“ z GitHub Secrets.
+    val releaseKeystore = System.getenv("RELEASE_KEYSTORE_FILE")?.let { file(it) }
     signingConfigs {
         getByName("debug") {
             storeFile = file("debug.keystore")
@@ -35,14 +37,29 @@ android {
             keyAlias = "androiddebugkey"
             keyPassword = "android"
         }
+        if (releaseKeystore != null && releaseKeystore.exists()) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+                keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         debug {
             signingConfig = signingConfigs.getByName("debug")
+            // aktualizácia z GitHubu priamo v aplikácii (iba testovacia verzia)
+            buildConfigField("boolean", "SELF_UPDATE", "true")
         }
         release {
-            isMinifyEnabled = true
+            signingConfig = signingConfigs.findByName("release")
+            // Google Play nedovoľuje aplikácii aktualizovať sa inak ako cez Play.
+            buildConfigField("boolean", "SELF_UPDATE", "false")
+            // Zmenšovanie kódu (R8) je zatiaľ vypnuté – menšie riziko pádu
+            // v prvých verziách. Zapnúť neskôr po otestovaní.
+            isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

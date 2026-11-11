@@ -35,7 +35,7 @@ import sk.odkazprevodica.app.ui.screens.NewMessageScreen
 import sk.odkazprevodica.app.ui.screens.ScannerScreen
 import sk.odkazprevodica.app.ui.screens.SentScreen
 import sk.odkazprevodica.app.ui.screens.SettingsScreen
-import sk.odkazprevodica.app.update.Updater
+import sk.odkazprevodica.app.update.SelfUpdate
 
 private object Routes {
     const val HOME = "home"
@@ -86,9 +86,9 @@ fun AppNavigation(openPlate: String? = null, onPlateOpened: () -> Unit = {}) {
         Repository.events.collect { text -> snackbar.showSnackbar(text, withDismissAction = true, duration = SnackbarDuration.Long) }
     }
 
-    // Kontrola novej verzie pri štarte (GitHub Releases).
-    LaunchedEffect(Unit) { Updater.check() }
-    val update by Updater.state.collectAsState()
+    // Kontrola novej verzie pri štarte (iba testovacia verzia z GitHubu).
+    LaunchedEffect(Unit) { SelfUpdate.checkOnStart() }
+    val updateAvailable = SelfUpdate.isAvailable()
 
     // Ťuknutie na notifikáciu → schránka auta.
     LaunchedEffect(openPlate) {
@@ -112,7 +112,7 @@ fun AppNavigation(openPlate: String? = null, onPlateOpened: () -> Unit = {}) {
                 onCarClick = { car -> nav.navigate(Routes.car(car.plate)) },
                 onAddCarClick = { nav.navigate(Routes.ADD_CAR) },
                 onTabSelect = { nav.goToTab(it) },
-                updateAvailable = update is Updater.State.Available || update is Updater.State.Ready,
+                updateAvailable = updateAvailable,
                 onUpdateClick = { nav.goToTab(Tab.Settings) },
             )
         }
